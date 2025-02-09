@@ -1,101 +1,122 @@
-import Image from "next/image";
+"use client";
+
+import { List } from "postcss/lib/list";
+import { useState, useEffect } from "react";
+
+const NUMBER_OF_CUTTING_STATIONS = 4;
+const NUMBER_OF_HOT_GLUE_STATIONS = 5;
+const IP = "http://192.168.1.36:5000/config_";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  var [event, setEvent] = useState("Lunch");
+  var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
+  var [cut, setCut] = useState([]);
+  var [hot, setHot] = useState([]);
+  var cutting_colors = Array.from({length: NUMBER_OF_CUTTING_STATIONS}, () => "text-green-600");
+  var hotGlue_colors = Array.from({length: NUMBER_OF_HOT_GLUE_STATIONS}, () => "text-green-600");
+  var [cut_colors, setCut_colors] = useState(cutting_colors);
+  var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
+  var cutting_status = [0, 1, 0, 0];
+  var hotGlue_status = [0, 1, 0, 0, 2];
+  const targetEpoch = 1739215119;
+  const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
+  
+  const StateToAvail = (state: Int8Array, colors: string[], number_of_stations: number) =>
+  {
+    var temp = [];
+    for (var s = 0; s < number_of_stations; s++)
+    {
+      if (state[s] == 0)
+        {
+          colors[s] = color_options[0];
+          temp[s] = "AVAILABLE";
+        }
+        else if (state[s] == 1)
+        {
+          colors[s] = color_options[1];
+          temp[s] = "OCCUPIED";
+        }
+        else if (state[s] == 2)
+        {
+          colors[s] = color_options[2];
+          temp[s] = "UNAVAILABLE";
+        }
+    }
+    return temp
+  }
+  // Update Variables
+  useEffect(() => {
+    const fetchData = async () => {
+      var response = await fetch(IP);
+      var result = await response.json();
+      return result
+    }
+    const interval = setInterval(() => {
+      var data = fetchData();
+      setEvent("Lunch");
+      setCut(StateToAvail(cutting_status, cutting_colors, NUMBER_OF_CUTTING_STATIONS));
+      setCut_colors(cutting_colors);
+        
+      setHot(StateToAvail(hotGlue_status, hotGlue_colors, NUMBER_OF_HOT_GLUE_STATIONS));
+      setHotGlue_colors(hotGlue_colors);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      setTimeLeft(targetEpoch - Math.floor(Date.now() / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetEpoch]);
+  
+  const hours = Math.floor(timeLeft / 3600);
+  const minutes = Math.floor((timeLeft % 3600) / 60);
+  const secs = timeLeft % 60;
+
+  return (
+    <div className="flex">
+      <div className="w-3/5 h-screen bg-white" >
+        <h1 className="text-[2.5vw] text-center font-bold mt-[2.5vw]">
+          MIT&CIC&UPC Hackathon 2026
+        </h1>
+        <div className="text-[1.5vw] text-center font-bold mt-[2vw]">
+          Time Until {event}: 
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="text-[4vw] text-center font-bold">
+          {hours}:{minutes}:{secs}
+        </div>
+        <div className="w-full h-3/5 mt-8">
+        <iframe
+          className="w-full h-full"
+          src="https://www.youtube.com/embed/xX4mBbJjdYM"
+          title="YouTube Video"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+        </div>
+      </div>
+      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
+        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
+            Cutting Stations
+        </div>
+        {Array.from({ length: NUMBER_OF_CUTTING_STATIONS }).map((_, index) => (
+        <div key={index} className="flex flex-col items-center justify-center">
+          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${cut_colors[index]}`}>
+              Nº{index + 1} {cut[index]}
+          </div>
+        </div>
+        ))}
+      </div>
+      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
+        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
+            Hot Glue Stations
+        </div>
+        {Array.from({ length: NUMBER_OF_HOT_GLUE_STATIONS }).map((_, index) => (
+        <div key={index} className="flex flex-col items-center justify-center">
+          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${hotglue_colors[index]}`}>
+              Nº{index + 1} {hot[index]}
+          </div>
+        </div>
+        ))}
+      </div>
     </div>
   );
 }
