@@ -1,0 +1,127 @@
+"use client";
+
+import { List } from "postcss/lib/list";
+import { useState, useEffect } from "react";
+import "./style.css";
+
+const NUMBER_OF_CUTTING_STATIONS = 4;
+const NUMBER_OF_HOT_GLUE_STATIONS = 5;
+const IP = "http://192.168.1.36:5000/config_";
+
+export default function Home() {
+  var [event, setEvent] = useState("Lunch");
+  var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
+  var [cut, setCut] = useState([]);
+  var [hot, setHot] = useState([]);
+  var cutting_colors = Array.from({length: NUMBER_OF_CUTTING_STATIONS}, () => "text-green-600");
+  var hotGlue_colors = Array.from({length: NUMBER_OF_HOT_GLUE_STATIONS}, () => "text-green-600");
+  var [cut_colors, setCut_colors] = useState(cutting_colors);
+  var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
+  var cutting_status = [0, 1, 0, 0];
+  var hotGlue_status = [0, 1, 0, 0, 2];
+  const targetEpoch = 1739215119;
+  const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
+  
+  const StateToAvail = (state: Int8Array, colors: string[], number_of_stations: number) =>
+  {
+    var temp = [];
+    for (var s = 0; s < number_of_stations; s++)
+    {
+      if (state[s] == 0)
+        {
+          colors[s] = color_options[0];
+          temp[s] = "AVAILABLE";
+        }
+        else if (state[s] == 1)
+        {
+          colors[s] = color_options[1];
+          temp[s] = "OCCUPIED";
+        }
+        else if (state[s] == 2)
+        {
+          colors[s] = color_options[2];
+          temp[s] = "UNAVAILABLE";
+        }
+    }
+    return temp
+  }
+  // Update Variables
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        var response = await fetch(IP);
+        var result = await response.json();
+        return result;
+      } catch (error) {
+        return {};
+      }
+    }
+    const interval = setInterval(() => {
+      var data = fetchData();
+      setEvent("Lunch");
+      setCut(StateToAvail(cutting_status, cutting_colors, NUMBER_OF_CUTTING_STATIONS));
+      setCut_colors(cutting_colors);
+        
+      setHot(StateToAvail(hotGlue_status, hotGlue_colors, NUMBER_OF_HOT_GLUE_STATIONS));
+      setHotGlue_colors(hotGlue_colors);
+
+      setTimeLeft(targetEpoch - Math.floor(Date.now() / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetEpoch]);
+  
+  const hours = Math.floor(timeLeft / 3600);
+  const minutes = Math.floor((timeLeft % 3600) / 60);
+  const secs = timeLeft % 60;
+
+  return (
+    <div className="flex">
+      <div className="w-3/5 h-screen bg-white" >
+        <h1 className="text-[2.5vw] text-center font-bold mt-[2.5vw]">
+          MIT&CIC&UPC Hackathon 2026
+        </h1>
+        <div className="text-[1.5vw] text-center font-bold mt-[2vw]">
+          Time Until {event}: 
+        </div>
+        <div className="text-[4vw] text-center font-bold">
+          {hours}:{minutes}:{secs}
+        </div>
+        <div className="w-full h-3/5 mt-8">
+        <iframe
+          className="w-full h-full"
+          src="https://www.youtube.com/embed/xX4mBbJjdYM"
+          title="YouTube Video"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+        </div>
+      </div>
+      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
+        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
+            Cutting Stations
+        </div>
+        {Array.from({ length: NUMBER_OF_CUTTING_STATIONS }).map((_, index) => (
+        <div key={index} className="flex flex-col items-center justify-center">
+          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${cut_colors[index]}`}>
+              Nº{index + 1} {cut[index]}
+          </div>
+        </div>
+        ))}
+      </div>
+      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
+        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
+            Hot Glue Stations
+        </div>
+        {Array.from({ length: NUMBER_OF_HOT_GLUE_STATIONS }).map((_, index) => (
+        <div key={index} className="flex flex-col items-center justify-center">
+          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${hotglue_colors[index]}`}>
+              Nº{index + 1} {hot[index]}
+          </div>
+        </div>
+        ))}
+      </div>
+    </div>
+  );
+}

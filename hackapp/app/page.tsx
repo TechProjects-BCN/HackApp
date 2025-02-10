@@ -2,121 +2,56 @@
 
 import { List } from "postcss/lib/list";
 import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
+import TPlogo from './img/TP.png'
+import Image from 'next/image';
 
-const NUMBER_OF_CUTTING_STATIONS = 4;
-const NUMBER_OF_HOT_GLUE_STATIONS = 5;
-const IP = "http://192.168.1.36:5000/config_";
+import "./phone.css";
 
 export default function Home() {
-  var [event, setEvent] = useState("Lunch");
-  var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
-  var [cut, setCut] = useState([]);
-  var [hot, setHot] = useState([]);
-  var cutting_colors = Array.from({length: NUMBER_OF_CUTTING_STATIONS}, () => "text-green-600");
-  var hotGlue_colors = Array.from({length: NUMBER_OF_HOT_GLUE_STATIONS}, () => "text-green-600");
-  var [cut_colors, setCut_colors] = useState(cutting_colors);
-  var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
-  var cutting_status = [0, 1, 0, 0];
-  var hotGlue_status = [0, 1, 0, 0, 2];
-  const targetEpoch = 1739215119;
-  const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
-  
-  const StateToAvail = (state: Int8Array, colors: string[], number_of_stations: number) =>
-  {
-    var temp = [];
-    for (var s = 0; s < number_of_stations; s++)
-    {
-      if (state[s] == 0)
-        {
-          colors[s] = color_options[0];
-          temp[s] = "AVAILABLE";
-        }
-        else if (state[s] == 1)
-        {
-          colors[s] = color_options[1];
-          temp[s] = "OCCUPIED";
-        }
-        else if (state[s] == 2)
-        {
-          colors[s] = color_options[2];
-          temp[s] = "UNAVAILABLE";
-        }
-    }
-    return temp
-  }
-  // Update Variables
-  useEffect(() => {
-    const fetchData = async () => {
-      var response = await fetch(IP);
-      var result = await response.json();
-      return result
-    }
-    const interval = setInterval(() => {
-      var data = fetchData();
-      setEvent("Lunch");
-      setCut(StateToAvail(cutting_status, cutting_colors, NUMBER_OF_CUTTING_STATIONS));
-      setCut_colors(cutting_colors);
-        
-      setHot(StateToAvail(hotGlue_status, hotGlue_colors, NUMBER_OF_HOT_GLUE_STATIONS));
-      setHotGlue_colors(hotGlue_colors);
-
-      setTimeLeft(targetEpoch - Math.floor(Date.now() / 1000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [targetEpoch]);
-  
-  const hours = Math.floor(timeLeft / 3600);
-  const minutes = Math.floor((timeLeft % 3600) / 60);
-  const secs = timeLeft % 60;
+  const router = useRouter();
+  var project_name = "Fountain";
 
   return (
-    <div className="flex">
-      <div className="w-3/5 h-screen bg-white" >
-        <h1 className="text-[2.5vw] text-center font-bold mt-[2.5vw]">
-          MIT&CIC&UPC Hackathon 2026
-        </h1>
-        <div className="text-[1.5vw] text-center font-bold mt-[2vw]">
-          Time Until {event}: 
-        </div>
-        <div className="text-[4vw] text-center font-bold">
-          {hours}:{minutes}:{secs}
-        </div>
-        <div className="w-full h-3/5 mt-8">
-        <iframe
-          className="w-full h-full"
-          src="https://www.youtube.com/embed/xX4mBbJjdYM"
-          title="YouTube Video"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-        </div>
+    <div className="h-dvh">
+    <div className="h-[53vh] w-screen flex flex-wrap flex-col ">
+      <div className="flex items-center justify-center w-screen h-[5vh] mt-[5vh] text-[4.5vh]">
+        <h1>Hackathon 2026 App</h1>
       </div>
-      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
-        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
-            Cutting Stations
-        </div>
-        {Array.from({ length: NUMBER_OF_CUTTING_STATIONS }).map((_, index) => (
-        <div key={index} className="flex flex-col items-center justify-center">
-          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${cut_colors[index]}`}>
-              Nº{index + 1} {cut[index]}
-          </div>
-        </div>
-        ))}
+      <div className="flex flex-col items-center justify-center">
+          <button type="button" onClick={() => router.push('/hotglue')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[7.2vh] bg-gray-600`}>
+              Enter Hot Glue Queue
+          </button>
       </div>
-      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
-        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
-            Hot Glue Stations
-        </div>
-        {Array.from({ length: NUMBER_OF_HOT_GLUE_STATIONS }).map((_, index) => (
-        <div key={index} className="flex flex-col items-center justify-center">
-          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${hotglue_colors[index]}`}>
-              Nº{index + 1} {hot[index]}
-          </div>
-        </div>
-        ))}
+      <div className="flex flex-col items-center justify-center">
+          <button type="button" onClick={() => router.push('/cutter')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
+              Enter Box Cutter Queue
+          </button>
       </div>
+      <div className="flex flex-col items-center justify-center">
+          <button type="button" onClick={() => router.push('/help')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
+              Ask for Help
+          </button>
+      </div>
+    </div>
+    <div className="h-[37vh] w-screen flex flex-wrap flex-col">
+      <div className="flex flex-col items-center justify-center">
+          <button type="button" onClick={() => router.push('/dashboard')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
+              Log Out
+          </button>
+      </div>
+      <div className="flex flex-col items-center justify-center">
+          <button type="button" onClick={() => router.push('/dashboard')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
+              Group: {project_name}
+          </button>
+      </div>
+      <div className="flex flex-col items-center justify-center">
+        <Image className="w-auto h-[15vh] mt-[2vh]"
+          src={TPlogo}
+          alt="TechProjects Logo"
+        />
+      </div>
+    </div>
     </div>
   );
 }
