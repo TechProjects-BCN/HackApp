@@ -3,12 +3,14 @@
 import { List } from "postcss/lib/list";
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
+import { getSession, login, logout } from "@/app/actions/auth";
 import Image from 'next/image';
 
 import "./phone.css";
 
 export default function Home() {
   const router = useRouter();
+  //console.log(session);
   var project_name = "Fountain";
 
   return (
