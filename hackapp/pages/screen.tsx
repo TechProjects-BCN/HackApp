@@ -8,7 +8,7 @@ const NUMBER_OF_CUTTING_STATIONS = 4;
 const NUMBER_OF_HOT_GLUE_STATIONS = 5;
 const IP = "http://192.168.1.36:5000/config_";
 
-export default function Home() {
+export default function Screen() {
   var [event, setEvent] = useState("Lunch");
   var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
   var [cut, setCut] = useState([]);

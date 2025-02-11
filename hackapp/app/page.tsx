@@ -3,7 +3,6 @@
 import { List } from "postcss/lib/list";
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import TPlogo from './img/TP.png'
 import Image from 'next/image';
 
 import "./phone.css";
@@ -36,18 +35,20 @@ export default function Home() {
     </div>
     <div className="h-[37vh] w-screen flex flex-wrap flex-col">
       <div className="flex flex-col items-center justify-center">
-          <button type="button" onClick={() => router.push('/dashboard')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
+          <button type="button" onClick={() => router.push('/logout')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
               Log Out
           </button>
       </div>
       <div className="flex flex-col items-center justify-center">
-          <button type="button" onClick={() => router.push('/dashboard')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
+          <button type="button" onClick={() => router.push('/group')} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[3vh] bg-gray-600`}>
               Group: {project_name}
           </button>
       </div>
       <div className="flex flex-col items-center justify-center">
         <Image className="w-auto h-[15vh] mt-[2vh]"
-          src={TPlogo}
+          src="/TP.png"
+          width={600}
+          height={400}
           alt="TechProjects Logo"
         />
       </div>
