@@ -1,11 +1,8 @@
 "use client";
 
-import { FormEvent } from 'react'
-
 import { Poppins } from 'next/font/google';
-import { useRouter } from 'next/navigation';
-import { signup } from '@/app/actions/auth'
-import { cn } from '@/lib/utils';
+import { login } from '@/app/actions/auth'
+import { cn } from '@/app/lib/utils';
 import "./phone.css";
 
 const font = Poppins({
@@ -14,12 +11,10 @@ const font = Poppins({
 })
 
 
-export default function login() {
-    const router = useRouter()
-    
+export default function LoginRoute() {
     return (
         <div className="h-dvh">
-            <form action={signup} className="h-screen w-screen flex flex-wrap flex-col ">
+            <form action={login} className="h-screen w-screen flex flex-wrap flex-col ">
                 <div className="flex items-center justify-center w-screen h-[5vh] mt-[5vh] text-[4.5vh]">
                     <h1>Hackathon 2026 App</h1>
                 </div>
