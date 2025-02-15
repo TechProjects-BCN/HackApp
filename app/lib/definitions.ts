@@ -22,3 +22,13 @@ export async function decrypt(session: string | undefined = '') {
       console.log('Failed to verify session')
     }
   }
+
+  
+export type FormState =
+| {
+    errors?: {
+      name?: string[]
+    }
+    message?: string
+  }
+| undefined
