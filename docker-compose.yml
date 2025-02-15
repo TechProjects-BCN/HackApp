@@ -1,0 +1,84 @@
+---
+services:
+  backend:
+    build:
+      context: backend
+    stop_signal: SIGINT
+    restart: always
+    networks:
+      - my_network
+    environment:
+      DB_HOST: postgres
+      DB_NAME: techprojects
+      DB_USER: techprojects
+      DB_PASSWORD: 12341234
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 200M
+        reservations:
+          cpus: '0.1'
+          memory: 70M
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+      
+  frontend:
+    build:
+      context: frontend
+    stop_signal: SIGINT
+    restart: always
+    networks:
+      - my_network
+    environment:
+      DB_HOST: postgres
+      DB_NAME: techprojects
+      DB_USER: techprojects
+      DB_PASSWORD: 12341234
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 200M
+        reservations:
+          cpus: '0.1'
+          memory: 70M
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+        
+    ports:
+      - "5000:5000"
+
+  postgres:
+    image: postgres
+    networks:
+      - my_network
+    restart: always
+    user: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: techprojects
+      POSTGRES_PASSWORD: 12341234
+      POSTGRES_DB: techprojects
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+networks:
+  my_network:
+    driver: bridge
+
+
+volumes:
+  pgdata:
