@@ -1,3 +1,5 @@
 flask
 waitress
 flask_cors
+psycopg2-binary
+jtw
