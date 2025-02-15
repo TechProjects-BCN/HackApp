@@ -6,7 +6,7 @@ import { dbLoginUser } from '@/app/lib/db'
 import { FormState } from '@/app/lib/definitions';
 
 export async function login(state: FormState, formData: FormData) {
-  let st: FormState = {};
+  const st: FormState = {};
   const user = { username: formData.get("username"), password: formData.get("password") };
   try{
     var userId = await dbLoginUser(user.username, user.password);

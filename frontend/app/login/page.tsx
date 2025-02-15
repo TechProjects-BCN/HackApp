@@ -30,7 +30,7 @@ export default function LoginRoute() {
                     <input className='w-1/2 h-[5vh]' type="username" name="username" placeholder="Username" required />
                 </div>
                 <div className={cn("flex items-center justify-center mt-[5vh] text-[2.5vh] text-black ${font.className}", font.className)}>
-                    <input className='w-1/2 h-[5vh]' type="password" name="password" placeholder="Password" required />
+                    <input autoComplete='on' className='w-1/2 h-[5vh]' type="password" name="password" placeholder="Password" required />
                 </div>
                 <div className={cn("flex items-center justify-center mt-[5vh] text-[2.5vh] text-white ${font.className}", font.className)}>
                     {state?.message && <p>{state.message}</p>}

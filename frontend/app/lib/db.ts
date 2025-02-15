@@ -1,11 +1,11 @@
 import postgres from 'postgres';
 
 const sql = postgres({
-    host                 : '192.168.1.36',            // Postgres ip address[s] or domain name[s]
+    host                 : process.env.DB_HOST,            // Postgres ip address[s] or domain name[s]
     port                 : 5432,          // Postgres server port[s]
-    database             : 'grass',            // Name of database to connect to
-    username             : 'grass',            // Username of database user
-    password             : '12341234',
+    database             : process.env.DB_NAME,            // Name of database to connect to
+    username             : process.env.DB_USER,            // Username of database user
+    password             : process.env.DB_PASSWORD,
     connect_timeout: 5  });
 
 export async function dbSessionFetch(userId: number, expiresAt: number) {

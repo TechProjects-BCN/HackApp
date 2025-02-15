@@ -11,8 +11,8 @@ const IP = "http://192.168.1.36:5000/config_";
 export default function Screen() {
   var [event, setEvent] = useState("Lunch");
   var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
-  var [cut, setCut] = useState([]);
-  var [hot, setHot] = useState([]);
+  var [cut, setCut] = useState<string[]>([]);
+  var [hot, setHot] = useState<string[]>([]);
   var cutting_colors = Array.from({length: NUMBER_OF_CUTTING_STATIONS}, () => "text-green-600");
   var hotGlue_colors = Array.from({length: NUMBER_OF_HOT_GLUE_STATIONS}, () => "text-green-600");
   var [cut_colors, setCut_colors] = useState(cutting_colors);
@@ -22,7 +22,7 @@ export default function Screen() {
   const targetEpoch = 1739215119;
   const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
   
-  const StateToAvail = (state: Int8Array, colors: string[], number_of_stations: number) =>
+  const StateToAvail = (state: number[], colors: string[], number_of_stations: number) =>
   {
     var temp = [];
     for (var s = 0; s < number_of_stations; s++)
