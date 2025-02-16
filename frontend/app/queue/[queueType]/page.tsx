@@ -3,14 +3,20 @@
 import "@/app/phone.css";
 import { useState, useEffect } from "react";
 import { leaveQueue } from "@/app/actions/queue";
+import { useParams } from 'next/navigation';
 
 export default function Queue() {
     var [groups_in_front, setGroupsInFront] = useState(0);
     var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
+    const params = useParams(); // Gets dynamic params from the URL
+    const queueType = params.queueType;
     const queue_propieties = {
-        "queueName": "Hot Glue",
-        "queueIdName": "hotglue"
+        "queueName": "Box Cutter",
+        "queueIdName": queueType
     }
+    if (queueType == "hotglue"){
+            queue_propieties["queueName"] = "Hot Glue"
+        }
     return (
         <div className="h-dvh">
             <form className="h-screen w-screen flex flex-wrap flex-col ">
