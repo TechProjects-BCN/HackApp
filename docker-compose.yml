@@ -39,6 +39,8 @@ services:
       DB_NAME: techprojects
       DB_USER: techprojects
       DB_PASSWORD: 12341234
+      NEXT_PUBLIC_HOST: 192.168.1.36:3000
+      NEXT_PUBLIC_BKG_HOST: 192.168.1.36:5000
     deploy:
       resources:
         limits:

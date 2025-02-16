@@ -3,3 +3,4 @@ waitress
 flask_cors
 psycopg2-binary
 pyjwt
+flask_apscheduler
