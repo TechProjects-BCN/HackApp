@@ -8,13 +8,14 @@ const sql = postgres({
     password             : process.env.DB_PASSWORD,
     connect_timeout: 5  });
 
-export async function dbSessionFetch(userId: number, expiresAt: number) {
-    await sql`INSERT INTO sessions(userId, expiresAt) VALUES (${userId}, ${expiresAt})`;
-    const sessionId = await sql`SELECT sessionId FROM sessions WHERE userId = ${userId} AND expiresAt = ${expiresAt}`;
+export async function dbSessionFetch(groupId: number, expiresAt: number) {
+    //console.log(`INSERT INTO sessions(groupId, expiresAt) VALUES (${groupId}, ${expiresAt})`);
+    await sql`INSERT INTO sessions(groupId, expiresAt) VALUES (${groupId}, ${expiresAt})`;
+    const sessionId = await sql`SELECT sessionId FROM sessions WHERE groupId = ${groupId} AND expiresAt = ${expiresAt}`;
     return sessionId[0]["sessionid"];
 }
 
-export async function dbLoginUser(username: any, password: any) {
-    const response = await sql`SELECT userId FROM users WHERE username = ${username} AND passw = ${password}`;
+export async function dbLoginGroup(username: any, password: any) {
+    const response = await sql`SELECT groupId FROM groups WHERE username = ${username} AND passw = ${password}`;
     return response;
 }

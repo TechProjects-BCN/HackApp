@@ -6,15 +6,15 @@ import { encrypt, decrypt } from '@/app/lib/definitions';
 import { dbSessionFetch } from '@/app/lib/db'
 
 
-export async function createSession(userId: any) {
+export async function createSession(groupId: any) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   
   // 1. Create a session in the database
-  const sessionId = await dbSessionFetch(userId, expiresAt.getTime());
+  const sessionId = await dbSessionFetch(groupId, expiresAt.getTime());
   console.log(sessionId);
 
   // 2. Encrypt the session ID
-  const session = await encrypt({ sessionId, userId, expiresAt })
+  const session = await encrypt({ sessionId, groupId, expiresAt })
  
   // 3. Store the session in cookies for optimistic auth checks
   const cookieStore = await cookies();
