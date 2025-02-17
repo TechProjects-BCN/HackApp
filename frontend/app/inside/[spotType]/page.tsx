@@ -2,11 +2,14 @@
 
 import "@/app/phone.css";
 import { useState, useEffect } from "react";
-import { LeaveSpot } from "@/app/actions/queue";
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 
 export default function Spot() {
-    const IP = "";
+    const router = useRouter();
+    const params = useParams(); // Gets dynamic params from the URL
+    const spotType = params.spotType;
     var [groups_in_front, setGroupsInFront] = useState(0);
     var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
     const TimeNow = Math.floor(Date.now() / 1000);
@@ -14,9 +17,18 @@ export default function Spot() {
     const [timeLeft, setTimeLeft] = useState(targetEpoch);
     const spot_propietes = {
         "spotName": "Hot Glue",
-        "spotIdName": "hotglue",
+        "spotIdName": spotType,
         "spotNumber": 2
     }
+    const LeaveSpot = async (spotType: any) => {
+        await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/leavespot`, {
+                headers: { "Content-Type": "application/json" },
+                method: "POST",
+                body: JSON.stringify({"spotType": spotType}),
+                credentials: "include",
+          });
+          router.push(`/`);
+      };
     useEffect(() => {
         const interval = setInterval(() => {
           setTimeLeft(targetEpoch - (Math.floor(Date.now() / 1000) - TimeNow));

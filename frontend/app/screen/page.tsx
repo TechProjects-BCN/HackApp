@@ -6,7 +6,7 @@ import "./style.css";
 
 const NUMBER_OF_CUTTING_STATIONS = 4;
 const NUMBER_OF_HOT_GLUE_STATIONS = 5;
-const IP = "http://192.168.1.36:5000/config_";
+const IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/queue`;
 
 export default function Screen() {
   var [event, setEvent] = useState("Lunch");
@@ -19,7 +19,7 @@ export default function Screen() {
   var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
   var cutting_status = [0, 1, 0, 0];
   var hotGlue_status = [0, 1, 0, 0, 2];
-  const targetEpoch = 1739215119;
+  const targetEpoch = 1739815120;
   const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
   
   const StateToAvail = (state: number[], colors: string[], number_of_stations: number) =>
@@ -32,15 +32,15 @@ export default function Screen() {
           colors[s] = color_options[0];
           temp[s] = "AVAILABLE";
         }
-        else if (state[s] == 1)
-        {
-          colors[s] = color_options[1];
-          temp[s] = "OCCUPIED";
-        }
         else if (state[s] == 2)
         {
           colors[s] = color_options[2];
           temp[s] = "UNAVAILABLE";
+        }
+        else
+        {
+          colors[s] = color_options[1];
+          temp[s] = "OCCUPIED";
         }
     }
     return temp
@@ -56,8 +56,11 @@ export default function Screen() {
         return {};
       }
     }
-    const interval = setInterval(() => {
-      var data = fetchData();
+    const interval = setInterval(async () => {
+      var data = await fetchData();
+      cutting_status = data["cutter_stations"];
+      hotGlue_status = data["hot_glue_stations"];
+      //console.log(data);
       setEvent("Lunch");
       setCut(StateToAvail(cutting_status, cutting_colors, NUMBER_OF_CUTTING_STATIONS));
       setCut_colors(cutting_colors);
@@ -90,7 +93,7 @@ export default function Screen() {
         <div className="w-full h-3/5 mt-8">
         <iframe
           className="w-full h-full"
-          src="https://www.youtube.com/embed/xX4mBbJjdYM"
+          src="ttps://www.youtube.com/embed/xX4mBbJjdYM"
           title="YouTube Video"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

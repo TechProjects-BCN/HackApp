@@ -1,11 +1,22 @@
 "use client";
 
 import "@/app/phone.css";
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from "react";
-import { leaveQueue } from "@/app/actions/queue";
 import { useParams } from 'next/navigation';
 
 export default function Queue() {
+    const router = useRouter();
+    const leaveQueue = async (queueType: any) => {
+        await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/removequeue`, {
+                headers: { "Content-Type": "application/json" },
+                method: "POST",
+                body: JSON.stringify({"queueType": queueType}),
+                credentials: "include",
+          });
+          router.push(`/`);
+      };
+    
     var [groups_in_front, setGroupsInFront] = useState(0);
     var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
     const params = useParams(); // Gets dynamic params from the URL
@@ -33,7 +44,7 @@ export default function Queue() {
                     <h1 className="w-[70vw]">Estimated Time Remaining: {estimated_time_remaining} min</h1>
                 </div>
                 <div className="flex flex-col items-center justify-center">
-                    <button type="button" onClick={() => leaveQueue(queue_propieties["queueIdName"])} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[7.2vh] bg-red-600`}>
+                    <button type="button" onClick={() => leaveQueue(queueType)} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[7.2vh] bg-red-600`}>
                         Leave Queue
                     </button>
                 </div>

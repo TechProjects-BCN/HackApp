@@ -8,7 +8,7 @@ import "@/app/phone.css";
 export default function Index() {
 
   const joinQueue = async (queueType: string) => {
-    await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/queue`, {
+    await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/joinqueue`, {
             headers: { "Content-Type": "application/json" },
             method: "POST",
             body: JSON.stringify({"queueType": queueType}),
