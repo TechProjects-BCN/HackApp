@@ -2,20 +2,40 @@
 
 import "./spot.css";
 import { useState, useEffect } from "react";
-import { AcceptSpot, GiveUpSpot } from "@/app/actions/queue";
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 
 export default function Spot() {
     const IP = "";
+    const router = useRouter();
     var [groups_in_front, setGroupsInFront] = useState(0);
     var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
     const TimeNow = Math.floor(Date.now() / 1000);
     const targetEpoch = 30;
+    const params = useParams(); // Gets dynamic params from the URL
+    const spotType = params.spotType;
     const [timeLeft, setTimeLeft] = useState(targetEpoch);
     const spot_propietes = {
         "spotName": "Hot Glue",
-        "spotIdName": "hotglue",
-        "spotNumber": 2
+        "spotIdName": spotType,
+        "spotNumber": -1
+    }
+    if (spotType == "cutter")
+    {
+        spot_propietes["spotName"] = "Box Cutter";
+    }
+    
+    async function AcceptSpot(request: any) {
+        console.log(`User Has Accepted Spot: ${request}`)
+        
+        router.push(`/inside/${spotType}`);
+    }
+
+    async function GiveUpSpot(request: any) {
+        console.log(`Requested to Give Up Spot: ${request}`)
+        
+        router.push(`/queue/${spotType}`);
     }
     useEffect(() => {
         const interval = setInterval(() => {

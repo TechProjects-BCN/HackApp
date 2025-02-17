@@ -6,6 +6,7 @@ import "./style.css";
 
 const NUMBER_OF_CUTTING_STATIONS = 4;
 const NUMBER_OF_HOT_GLUE_STATIONS = 5;
+
 const IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/queue`;
 
 export default function Screen() {

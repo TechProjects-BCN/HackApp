@@ -5,8 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from "react";
 import { useParams } from 'next/navigation';
 
+
 export default function Queue() {
     const router = useRouter();
+    var [groups_in_front, setGroupsInFront] = useState(0);
+    var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
+    const params = useParams(); // Gets dynamic params from the URL
+    const queueType = params.queueType;
     const leaveQueue = async (queueType: any) => {
         await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/removequeue`, {
                 headers: { "Content-Type": "application/json" },
@@ -16,18 +21,54 @@ export default function Queue() {
           });
           router.push(`/`);
       };
-    
-    var [groups_in_front, setGroupsInFront] = useState(0);
-    var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
-    const params = useParams(); // Gets dynamic params from the URL
-    const queueType = params.queueType;
-    const queue_propieties = {
-        "queueName": "Box Cutter",
-        "queueIdName": queueType
-    }
-    if (queueType == "hotglue"){
-            queue_propieties["queueName"] = "Hot Glue"
+    useEffect(() => {
+        const fetchData = async () => {
+          try {
+            var response = await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/status`, {
+                headers: { "Content-Type": "application/json" },
+                method: "GET",
+                credentials: "include"
+          });
+            var result = await response.json();
+            return result;
+          } catch (error) {
+            return {};
+          }
         }
+        const interval = setInterval(async () => {
+          var data = await fetchData();
+            console.log(data);
+            if (data["spotHotGlueToAccept"] || data["spotHotGlueToAccept"]){
+                router.push(`/spot/${queueType}`);
+            };
+            if (data["hotglueStation"] && queueType == "hotglue"){
+                router.push(`/inside/hotglue`);
+            };
+            if (data["cutterStation"] && queueType == "cutter"){
+                router.push(`/inside/cutter`);
+            };
+            if (data["hotglueQueue"] && queueType == "hotglue"){
+                setGroupsInFront(data["hotglueQueue"]["position"]);
+                setEstimatedTimeRemaining(data["hotglueQueue"]["ETA"]);
+                queue_propieties["queueName"] = "Hot Glue"
+            }
+            if (data["cutterQueue"] && queueType == "cutter"){
+                setGroupsInFront(data["cutterQueue"]["position"]);
+                setEstimatedTimeRemaining(data["cutterQueue"]["ETA"]);
+            }
+        }, 1000);
+    
+        return () => clearInterval(interval);
+      }, [groups_in_front]);
+      
+    const queue_propieties = {
+        "queueName": "Hot Glue",
+        "queueIdName": queueType
+    } 
+    if (queueType == "cutter")
+    {
+        queue_propieties["queueName"] = "Box Cutter";
+    }
     return (
         <div className="h-dvh">
             <form className="h-screen w-screen flex flex-wrap flex-col ">

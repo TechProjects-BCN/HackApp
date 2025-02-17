@@ -26,8 +26,10 @@ cutter_stations = [0 for _ in range(CUTTER_STATIONS)]
 cutter_stations_epochs = [None for _ in range(CUTTER_STATIONS)]
 hotglue_stations = [0 for _ in range(HOT_GLUE_STATIONS)]
 hot_glue_stations_epochs = [None for _ in range(HOT_GLUE_STATIONS)]
+spot_hotglue = []
+spot_cutter = [] # (group, False, time)
 
-STATION_TIME = 60 * 10
+STATION_TIME = 60 * 10 + 30
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, origins=["*"])
@@ -38,14 +40,43 @@ database = Database(database=os.getenv('DB_NAME', 'techprojects'), user=os.geten
 def updater():
     if 0 in cutter_stations and len(cutter_queue) > 0:
         empty_slot = cutter_stations.index(0)
-        cutter_stations[empty_slot] = cutter_queue.pop(0)
         cutter_stations_epochs[empty_slot] = time.time() + STATION_TIME
+        spot_cutter.append((cutter_queue.pop(0), False, time.time() + 5, empty_slot))
+        hotglue_stations[empty_slot] = 3
 
     if 0 in hotglue_stations and len(hot_glue_queue) > 0:
         empty_slot = hotglue_stations.index(0)
-        hotglue_stations[empty_slot] = hot_glue_queue.pop(0)
         hot_glue_stations_epochs[empty_slot] = time.time() + STATION_TIME
-    print(f"Queues: \n Cutter: {cutter_queue} \n Hot Glue: {hot_glue_queue} \nStations:\n Cutter: {cutter_stations} \n Hot Glue: {hotglue_stations}")
+        spot_hotglue.append((hot_glue_queue.pop(0), False, time.time() + 5, empty_slot))
+        hotglue_stations[empty_slot] = 3
+    
+    to_remove = []
+    for group, accepted, LimitTime, slot in spot_cutter:
+        if time.time() > LimitTime:
+            cutter_stations[slot] = 0
+            cutter_queue.append(group)
+            to_remove.append((group, accepted, LimitTime, slot))
+        elif accepted:
+            cutter_stations[slot] = group
+            to_remove.append((group, accepted, LimitTime, slot))
+
+    for group in to_remove:
+        spot_cutter.pop(spot_cutter.index(group))
+
+    to_remove = []
+    for group, accepted, LimitTime, slot in spot_hotglue:
+        if time.time() > LimitTime:
+            hotglue_stations[slot] = 0
+            hot_glue_queue.append(group)
+            to_remove.append((group, accepted, LimitTime, slot))
+        elif accepted:
+            cutter_stations[slot] = group
+            to_remove.append((group, accepted, LimitTime, slot))
+            
+    for group in to_remove:
+        spot_hotglue.pop(spot_hotglue.index(group))
+
+    print(f"Queues: \n Cutter: {cutter_queue} \n Hot Glue: {hot_glue_queue} \nStations:\n Cutter: {cutter_stations} \n Hot Glue: {hotglue_stations} \nTo Be Accepted: \n Hot Glue: {spot_hotglue} \n Cutter: {spot_cutter}")
     
 def getGroups(eventId):
     temp_groups = []
@@ -107,6 +138,21 @@ def removeGroupFromSpot(groupId, spotType):
     print(f"Removed Group {groupId} from {spotType}")
     updater()
 
+def acceptSpot(groupId, spotType):
+    group_info = getGroup(groupId)
+    if spotType == "cutter":
+        for i, group in enumerate(spot_cutter):
+            if group[0] == group_info:
+                group_id = i
+                break
+        spot_cutter[group][2] = True
+    else:
+        for i, group in enumerate(spot_hotglue):
+            if group[0] == group_info:
+                group_id = i
+                break
+        spot_cutter[group_id][2] = True
+
 @app.route("/")
 def index():
     return {"Backend": "Server"}
@@ -136,7 +182,6 @@ def removequeue():
 @app.route("/leavespot", methods=["POST"])
 def leavespot():
     if request.method == "POST":
-        print(request.json)
         spotType = request.json["spotType"]
     valid, session = get_cookie()
     if not valid or not session["sessionId"]:
@@ -144,6 +189,17 @@ def leavespot():
     removeGroupFromSpot(groupId=session["groupId"], spotType=spotType)
     updater()
     return Response({"Removed": "Success"}, status=200)
+
+@app.route("/accept", methods=["POST"])
+def accept():
+    if request.method == "POST":
+        spotType = request.json["spotType"]
+    valid, session = get_cookie()
+    if not valid or not session["sessionId"]:
+        return Response({"Not Authorized": ""}, status=401)  
+    acceptSpot(groupId=session["groupId"], spotType=spotType)
+    updater()
+    return Response({"Accepted": "Success"}, status=200)
 
 @app.route("/queue", methods=["GET"])
 def queue():
@@ -171,6 +227,14 @@ def status():
         spot_info["spotId"] = cutter_stations.index(group_info)
         spot_info["EpochEnd"] = cutter_stations_epochs[spot_info["spotId"]]
         response["cutterStation"] = spot_info
+    
+    for i, group in enumerate(spot_cutter):
+        if group[0] == group_info:
+            spot_info = {}
+            spot_info["spotId"] = i
+            spot_info["EpochEnd"] = spot_cutter[spot_info["spotId"]][2]
+            response["spotCutterToAccept"] = spot_info
+            break
         
     if group_info in hot_glue_queue:
         queue_info = {}
@@ -183,8 +247,16 @@ def status():
         spot_info["spotId"] = hotglue_stations.index(group_info)
         spot_info["EpochEnd"] = hot_glue_stations_epochs[spot_info["spotId"]]
         response["hotglueStation"] = spot_info
-    print(response)
-    return Response(response, status=200)
+        
+    for i, group in enumerate(spot_hotglue):
+        if group[0] == group_info:
+            spot_info = {}
+            spot_info["spotId"] = i
+            spot_info["EpochEnd"] = spot_hotglue[spot_info["spotId"]][2]
+            response["spotHotGlueToAccept"] = spot_info
+            break
+
+    return response, 200
 
 def main():
     scheduler = APScheduler()

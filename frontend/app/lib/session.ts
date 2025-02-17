@@ -11,7 +11,7 @@ export async function createSession(groupId: any) {
   
   // 1. Create a session in the database
   const sessionId = await dbSessionFetch(groupId, expiresAt.getTime());
-  console.log(sessionId);
+  //console.log(expiresAt);
 
   // 2. Encrypt the session ID
   const session = await encrypt({ sessionId, groupId, expiresAt })
@@ -21,7 +21,6 @@ export async function createSession(groupId: any) {
   await cookieStore.set('session', session, {
     httpOnly: true,
     expires: expiresAt,
-    maxAge: 1000,
     sameSite: 'lax',
     path: '/',
   });
