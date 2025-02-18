@@ -1,11 +1,26 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { logout } from '@/app/actions/auth';
 import Image from 'next/image';
 import "@/app/phone.css";
 
 export default function Index() {
+  const [project_name, setProjectName] = useState("Loading...")
+
+  useEffect(() => {
+    async function fetchPosts() {
+      const res = await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/info`, {
+          headers: { "Content-Type": "application/json" },
+          method: "GET",
+          credentials: "include"
+    });
+      const data = await res.json();
+      setProjectName(data["name"]);
+    }
+    fetchPosts()
+  }, [])
 
   const joinQueue = async (queueType: string) => {
     await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/joinqueue`, {
@@ -17,7 +32,6 @@ export default function Index() {
       router.push(`/queue/${queueType}`);
   };
   const router = useRouter();
-  var project_name = "Fountain";
 
   return (
     <div className="h-dvh">

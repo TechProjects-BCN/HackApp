@@ -12,7 +12,7 @@ CUTTER_STATIONS = 4
 ACCEPT_TIME = 30 # seconds
 STATION_TIME = 60 * 10 + ACCEPT_TIME # seconds
 
-cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter = [], [], [], [], []
+cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
 
 cutter_stations = [0 for _ in range(CUTTER_STATIONS)]
 cutter_stations_epochs = [None for _ in range(CUTTER_STATIONS)]
@@ -26,7 +26,6 @@ database = Database(database=os.getenv('DB_NAME', 'techprojects'), user=os.geten
 
 #function executed by scheduled job
 def updater():
-
     # Check if there's spot in the stations and if there's someone waiting on the queue
     if 0 in cutter_stations and len(cutter_queue) > 0:
         empty_slot = cutter_stations.index(0)
@@ -45,9 +44,13 @@ def updater():
     for group in spot_cutter:
         if time.time() > group.TimeLeft:
             cutter_stations[group.slot] = 0
-            cutter_queue.append(group.group)
             to_remove.append(group)
+            if group.group not in failed_attempts:
+                failed_attempts.append(group.group)
+                cutter_queue.append(group.group)
         elif group.accepted:
+            if group.group in failed_attempts:
+                failed_attempts.remove(group.group)
             cutter_stations[group.slot] = group.group
             to_remove.append(group)
 
@@ -58,9 +61,13 @@ def updater():
     for group in spot_hotglue:
         if time.time() > group.TimeLeft:
             hotglue_stations[group.slot] = 0
-            hot_glue_queue.append(group.group)
             to_remove.append(group)
+            if group.group not in failed_attempts:
+                failed_attempts.append(group.group)
+                hot_glue_queue.append(group.group)
         elif group.accepted:
+            if group.group in failed_attempts:
+                failed_attempts.remove(group.group)
             hotglue_stations[group.slot] = group.group
             to_remove.append(group)
             
@@ -172,6 +179,14 @@ def authenticated_request(function, nameType):
 def index():
     return {"Backend": "Server"}
 
+@app.route("/info", methods=["GET"])
+def info():
+    valid, session = get_cookie()
+    if not valid or not session["sessionId"]:
+        return Response({"Not Authorized": ""}, status=401)  
+    group_info = getGroup(session["groupId"])
+    return {"name": group_info.name, "groupNumber": group_info.groupNumber}
+
 @app.route("/joinqueue", methods=["POST"])
 def joinqueue():
     return authenticated_request(function=addGroupToQueue, nameType="queueType")
@@ -217,13 +232,12 @@ def status():
         spot_info = {}
         spot_info["spotId"] = cutter_stations.index(group_info) + 1
         spot_info["EpochEnd"] = cutter_stations_epochs[cutter_stations.index(group_info)]
-        print(spot_info["spotId"])
         response["cutterStation"] = spot_info
     
     for i, group in enumerate(spot_cutter):
         if group.group == group_info:
             spot_info = {}
-            spot_info["spotId"] = i + 1
+            spot_info["spotId"] = group.slot + 1
             spot_info["EpochEnd"] = group.TimeLeft
             response["spotcutterToAccept"] = spot_info
             break
@@ -243,7 +257,7 @@ def status():
     for i, group in enumerate(spot_hotglue):
         if group.group == group_info:
             spot_info = {}
-            spot_info["spotId"] = i + 1
+            spot_info["spotId"] = group.slot + 1
             spot_info["EpochEnd"] = group.TimeLeft
             response["spothotglueToAccept"] = spot_info
             break

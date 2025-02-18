@@ -19,6 +19,10 @@ export default function Spot() {
     const spot_propietes = {
         "spotName": "Hot Glue",
         "spotIdName": spotType
+    };
+    if (spotType == "cutter")
+    {
+        spot_propietes["spotName"] = "Box Cutter";
     }
     const LeaveSpot = async (spotType: any) => {
         await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/leavespot`, {
