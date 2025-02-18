@@ -94,7 +94,7 @@ export default function Screen() {
         <div className="w-full h-3/5 mt-8">
         <iframe
           className="w-full h-full"
-          src="ttps://www.youtube.com/embed/xX4mBbJjdYM"
+          src="https://www.youtube.com/embed/xX4mBbJjdYM"
           title="YouTube Video"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

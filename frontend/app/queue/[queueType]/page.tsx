@@ -38,23 +38,17 @@ export default function Queue() {
         const interval = setInterval(async () => {
           var data = await fetchData();
             console.log(data);
-            if (data["spotHotGlueToAccept"] || data["spotHotGlueToAccept"]){
+            if (data[`spot${queueType}ToAccept`]){
                 router.push(`/spot/${queueType}`);
-            };
-            if (data["hotglueStation"] && queueType == "hotglue"){
-                router.push(`/inside/hotglue`);
-            };
-            if (data["cutterStation"] && queueType == "cutter"){
-                router.push(`/inside/cutter`);
-            };
-            if (data["hotglueQueue"] && queueType == "hotglue"){
-                setGroupsInFront(data["hotglueQueue"]["position"]);
-                setEstimatedTimeRemaining(data["hotglueQueue"]["ETA"]);
-                queue_propieties["queueName"] = "Hot Glue"
-            }
-            if (data["cutterQueue"] && queueType == "cutter"){
-                setGroupsInFront(data["cutterQueue"]["position"]);
-                setEstimatedTimeRemaining(data["cutterQueue"]["ETA"]);
+
+            } else if (data[`${queueType}Station`]){
+                router.push(`/inside/${queueType}`);
+
+            } else if (data[`${queueType}Queue`]){
+                setGroupsInFront(data[`${queueType}Queue`]["position"]);
+                setEstimatedTimeRemaining(data[`${queueType}Queue`]["ETA"]);
+            } else{
+                router.push("/");
             }
         }, 1000);
     
