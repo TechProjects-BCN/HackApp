@@ -4,7 +4,7 @@ INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('te
 INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('laser', 'harp', 'Laser Harp', 2, 0);
 INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('water', 'fountain', 'Water Fountain', 3, 0);
 INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('robotic', 'arm', 'Robotic Arm', 4, 0);
-INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('rc', 'car', 'RC Car', 1, 0);
-INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('solar', 'etcher', 'Solar Etcher', 5, 0);
+INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('rc', 'car', 'RC Car', 5, 0);
+INSERT INTO groups(username, passw, groupName, groupNumber, eventID) VALUES ('solar', 'etcher', 'Solar Etcher', 6, 0);
 
 CREATE USER postgres SUPERUSER;
