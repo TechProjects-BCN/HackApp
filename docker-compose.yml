@@ -26,6 +26,11 @@ services:
     restart: always
     networks:
       - my_network
+    environment:
+      DB_HOST: postgres
+      DB_NAME: techprojects
+      DB_USER: techprojects
+      DB_PASSWORD: 12341234
 
     depends_on:
       postgres:
