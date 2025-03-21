@@ -1,4 +1,5 @@
 # Backend
+import logging  
 from flask import Flask, request, Response
 from flask_apscheduler import APScheduler
 import jwt
@@ -20,10 +21,11 @@ hotglue_stations = [0 for _ in range(HOT_GLUE_STATIONS)]
 hot_glue_stations_epochs = [None for _ in range(HOT_GLUE_STATIONS)]
 
 app = Flask(__name__)
+scheduler = APScheduler()
 CORS(app, supports_credentials=True, origins=["*"])
 database = Database(database=os.getenv('DB_NAME', 'techprojects'), user=os.getenv('DB_USER', 'techprojects'),
                     host=os.getenv('DB_HOST', '127.0.0.1'), password=os.getenv('DB_PASSWORD', '12341234'), port=5432)
-
+app.logger.setLevel(logging.INFO)
 #function executed by scheduled job
 def updater():
     # Check if there's spot in the stations and if there's someone waiting on the queue
@@ -42,16 +44,17 @@ def updater():
     # Check if someone either accepted the spot or ran out of time to accept
     to_remove = []
     for group in spot_cutter:
-        if time.time() > group.TimeLeft:
+        if time.time() > group.TimeLeft:  # Ran out of time
             cutter_stations[group.slot] = 0
             to_remove.append(group)
-            if group.group not in failed_attempts:
+            if group.group not in failed_attempts: # Gets Blacklisted
                 failed_attempts.append(group.group)
                 cutter_queue.append(group.group)
-        elif group.accepted:
-            if group.group in failed_attempts:
+        elif group.accepted: # Has Accepted
+            if group.group in failed_attempts: # Removed from blacklist
                 failed_attempts.remove(group.group)
             cutter_stations[group.slot] = group.group
+            database.write_spot_acceptance(group, spotType="cutter")
             to_remove.append(group)
 
     for group in to_remove:
@@ -69,16 +72,17 @@ def updater():
             if group.group in failed_attempts:
                 failed_attempts.remove(group.group)
             hotglue_stations[group.slot] = group.group
+            database.write_spot_acceptance(group, spotType="hotglue")
             to_remove.append(group)
             
     for group in to_remove:
         spot_hotglue.pop(spot_hotglue.index(group))
 
-    print(f"Queues: \n Cutter: {cutter_queue} \n Hot Glue: {hot_glue_queue} \nStations:\n Cutter: {cutter_stations} \n Hot Glue: {hotglue_stations} \nTo Be Accepted: \n Hot Glue: {spot_hotglue} \n Cutter: {spot_cutter}")
+    app.logger.info(f"Queues: Cutter: {cutter_queue}  Hot Glue: {hot_glue_queue} Stations: Cutter: {cutter_stations}  Hot Glue: {hotglue_stations} To Be Accepted:  Hot Glue: {spot_hotglue}  Cutter: {spot_cutter}")
 
 def getGroup(groupId):
-    groupId, groupName, groupNumber = database.get_group(groupId)[0]
-    return Group(groupId=groupId, groupNumber=groupNumber, name=groupName)
+    groupId, groupName, groupNumber, eventID = database.get_group(groupId)[0]
+    return Group(groupId=groupId, groupNumber=groupNumber, name=groupName, eventId=eventID)
 
 def get_cookie():
     session_cookie = request.cookies.get('session')
@@ -125,6 +129,7 @@ def removeGroupFromSpot(groupId, spotType):
     else:
         print(f"Group {groupId} tried to be removed from the queue but wasn't in it or invalid queueType: {spotType}")
         return
+    database.write_spot_leaving(group=group_info, spotType=spotType, slot=slot)
     print(f"Removed Group {groupId} from {spotType}")
 
 def acceptSpot(groupId, spotType):
@@ -172,7 +177,7 @@ def authenticated_request(function, nameType):
     if not valid or not session["sessionId"]:
         return Response({"Not Authorized": ""}, status=401)  
     function(groupId=session["groupId"], spotType=spotType)
-    updater()
+    scheduler.run_job('job')
     return Response({"Accepted": "Success"}, status=200)
     
 @app.route("/")
@@ -210,9 +215,9 @@ def giveup():
 @app.route("/queue", methods=["GET"])
 def queue():
     return {"cutter_queue": cutter_queue,
-                     "cutter_stations": cutter_stations,
-                     "hot_glue_queue": hot_glue_queue,
-                     "hot_glue_stations": hotglue_stations}, 200
+            "cutter_stations": cutter_stations,
+            "hot_glue_queue": hot_glue_queue,
+            "hot_glue_stations": hotglue_stations}, 200
 
 
 @app.route("/status", methods=["GET"])
@@ -265,7 +270,6 @@ def status():
     return response, 200
 
 def main():
-    scheduler = APScheduler()
     scheduler.add_job(func=updater, trigger='interval', id='job', seconds=10)
     scheduler.start()
     app.run(host="0.0.0.0")

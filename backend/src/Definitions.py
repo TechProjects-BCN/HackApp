@@ -5,6 +5,7 @@ class Group:
     name: str
     groupId: int
     groupNumber: int
+    eventId: int
 
 @dataclass
 class GroupToBeAccepted:

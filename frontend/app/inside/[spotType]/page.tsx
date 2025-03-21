@@ -10,12 +10,10 @@ export default function Spot() {
     const router = useRouter();
     const params = useParams(); // Gets dynamic params from the URL
     const spotType = params.spotType;
-    var [groups_in_front, setGroupsInFront] = useState(0);
-    var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
     const TimeNow = Math.floor(Date.now() / 1000);
     const [targetEpoch, settargetEpoch] = useState(60 * 10 + 30 + TimeNow);
     const [timeLeft, setTimeLeft] = useState(60 * 10 + 30);
-    const [spotNumber, setSpotNumber] = useState(-1);
+    const [spotNumber, setSpotNumber] = useState("-");
     const spot_propietes = {
         "spotName": "Hot Glue",
         "spotIdName": spotType

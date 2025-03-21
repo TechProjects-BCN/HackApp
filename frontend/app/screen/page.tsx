@@ -20,7 +20,7 @@ export default function Screen() {
   var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
   var cutting_status = [0, 1, 0, 0];
   var hotGlue_status = [0, 1, 0, 0, 2];
-  const targetEpoch = 1739815120;
+  const targetEpoch = 1742578773;
   const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
   
   const StateToAvail = (state: number[], colors: string[], number_of_stations: number) =>

@@ -13,7 +13,7 @@ export default function Spot() {
     const params = useParams(); // Gets dynamic params from the URL
     const spotType = params.spotType;
     const [timeLeft, setTimeLeft] = useState(targetEpoch);
-    const [spotNumber, setSpotNumber] = useState(-1);
+    const [spotNumber, setSpotNumber] = useState("-");
     const spot_propietes = {
         "spotName": "Hot Glue",
         "spotIdName": spotType
