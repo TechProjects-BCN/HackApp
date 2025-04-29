@@ -1,26 +1,27 @@
 "use client";
 
-import { List } from "postcss/lib/list";
 import { useState, useEffect } from "react";
 import "./style.css";
 
 const NUMBER_OF_CUTTING_STATIONS = 4;
 const NUMBER_OF_HOT_GLUE_STATIONS = 5;
 
-const IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/queue`;
+const QUEUE_IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/queue`;
+const COUNTDOWN_IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/countdown`;
 
 export default function Screen() {
   var [event, setEvent] = useState("Lunch");
+  var [sign, setSign] = useState("-");
   var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
-  var [cut, setCut] = useState<string[]>([]);
-  var [hot, setHot] = useState<string[]>([]);
+  var [cut, setCut] = useState<string[]>(["AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE"]);
+  var [hot, setHot] = useState<string[]>(["AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE"]);
   var cutting_colors = Array.from({length: NUMBER_OF_CUTTING_STATIONS}, () => "text-green-600");
   var hotGlue_colors = Array.from({length: NUMBER_OF_HOT_GLUE_STATIONS}, () => "text-green-600");
   var [cut_colors, setCut_colors] = useState(cutting_colors);
   var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
   var cutting_status = [0, 1, 0, 0];
   var hotGlue_status = [0, 1, 0, 0, 2];
-  const targetEpoch = 1742578773;
+  var targetEpoch = 1745939420;
   const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
   
   const StateToAvail = (state: number[], colors: string[], number_of_stations: number) =>
@@ -48,7 +49,7 @@ export default function Screen() {
   }
   // Update Variables
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (IP: string) => {
       try {
         var response = await fetch(IP);
         var result = await response.json();
@@ -58,18 +59,25 @@ export default function Screen() {
       }
     }
     const interval = setInterval(async () => {
-      var data = await fetchData();
-      cutting_status = data["cutter_stations"];
-      hotGlue_status = data["hot_glue_stations"];
-      //console.log(data);
-      setEvent("Lunch");
+      var queue_data = await fetchData(QUEUE_IP);
+      var countdown_data = await fetchData(COUNTDOWN_IP);
+      cutting_status = queue_data["cutter_stations"];
+      hotGlue_status = queue_data["hot_glue_stations"];
+      setEvent(countdown_data["event"]);
       setCut(StateToAvail(cutting_status, cutting_colors, NUMBER_OF_CUTTING_STATIONS));
       setCut_colors(cutting_colors);
         
       setHot(StateToAvail(hotGlue_status, hotGlue_colors, NUMBER_OF_HOT_GLUE_STATIONS));
       setHotGlue_colors(hotGlue_colors);
-
-      setTimeLeft(targetEpoch - Math.floor(Date.now() / 1000));
+      targetEpoch = countdown_data["target_epoch"];
+      if (targetEpoch > Math.floor(Date.now() / 1000))
+      {
+        setTimeLeft(targetEpoch - Math.floor(Date.now() / 1000));
+        setSign("-");
+      } else{
+        setTimeLeft(Math.floor(Date.now() / 1000) - targetEpoch);
+        setSign("+");
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -89,7 +97,7 @@ export default function Screen() {
           Time Until {event}: 
         </div>
         <div className="text-[4vw] text-center font-bold">
-          {hours}:{minutes}:{secs}
+          T {sign} {hours}:{minutes}:{secs}
         </div>
         <div className="w-full h-3/5 mt-8">
         <iframe

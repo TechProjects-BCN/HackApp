@@ -12,6 +12,10 @@ HOT_GLUE_STATIONS = 5
 CUTTER_STATIONS = 4
 ACCEPT_TIME = 30 # seconds
 STATION_TIME = 60 * 10 + ACCEPT_TIME # seconds
+countdown_info = {
+    "event": "Hackathon Start",
+    "target_epoch": 1745943020,
+}
 
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
 
@@ -83,6 +87,14 @@ def updater():
 def getGroup(groupId):
     groupId, groupName, groupNumber, eventID = database.get_group(groupId)[0]
     return Group(groupId=groupId, groupNumber=groupNumber, name=groupName, eventId=eventID)
+
+def check_admin():
+    session_cookie = request.cookies.get('session')
+    if session_cookie == None:
+        return False, {}
+    cookie = dict(jwt.decode(session_cookie, key='secret', algorithms='HS256')) 
+    isAdmin = database.check_admin(cookie["groupId"])
+    return isAdmin, cookie
 
 def get_cookie():
     session_cookie = request.cookies.get('session')
@@ -219,6 +231,16 @@ def queue():
             "hot_glue_queue": hot_glue_queue,
             "hot_glue_stations": hotglue_stations}, 200
 
+
+@app.route("/countdown", methods=["GET", "POST"])
+def countdown():
+    if request.method == "GET":
+        return countdown_info
+    else:
+        valid, session = check_admin()
+        if not valid or not session["sessionId"]:
+            return Response({"Not Authorized": ""}, status=401)  
+        
 
 @app.route("/status", methods=["GET"])
 def status():

@@ -54,3 +54,17 @@ class Database:
             self.db.commit()
         finally:
             self.db_lock.release()
+
+    def check_admin(self, groupid):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"""
+                    SELECT * FROM admins WHERE admins.groupId = {groupid}
+            """)
+            result = self.cursor.fetchall()
+            if result:
+                return True
+            else:
+                return False
+        finally:
+            self.db_lock.release()

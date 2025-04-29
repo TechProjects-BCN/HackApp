@@ -19,3 +19,8 @@ export async function dbLoginGroup(username: any, password: any) {
     const response = await sql`SELECT groupId FROM groups WHERE username = ${username} AND passw = ${password}`;
     return response;
 }
+
+export async function checkAdmin(groupId: any) {
+    const response = await sql`SELECT * FROM admins WHERE admins.groupId = ${groupId};`;
+    return response;
+}

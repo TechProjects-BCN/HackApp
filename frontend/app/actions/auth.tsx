@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createSession, deleteSession } from '@/app/lib/session';
-import { dbLoginGroup } from '@/app/lib/db'
+import { dbLoginGroup } from '@/app/lib/db';
 import { FormState } from '@/app/lib/definitions';
 
 export async function login(state: FormState, formData: FormData) {
@@ -18,7 +18,7 @@ export async function login(state: FormState, formData: FormData) {
     await createSession(groupId[0]["groupid"]);
 
   }catch (e){
-    st.message = `Wrong credentials`;
+    st.message = `Wrong credentials: ${e}`;
     return st;
   }    
 

@@ -3,7 +3,7 @@
 import 'server-only'
 import { cookies } from 'next/headers'
 import { encrypt, decrypt } from '@/app/lib/definitions';
-import { dbSessionFetch } from '@/app/lib/db'
+import { checkAdmin, dbSessionFetch } from '@/app/lib/db'
 
 
 export async function createSession(groupId: any) {
@@ -12,9 +12,13 @@ export async function createSession(groupId: any) {
   // 1. Create a session in the database
   const sessionId = await dbSessionFetch(groupId, expiresAt.getTime());
   //console.log(expiresAt);
-
+  var isAdminResponse = await checkAdmin(groupId);
+  if (isAdminResponse[0]) { var isAdmin = 1}
+  else{
+    var isAdmin = 0;
+  }
   // 2. Encrypt the session ID
-  const session = await encrypt({ sessionId, groupId, expiresAt })
+  const session = await encrypt({ sessionId, groupId, isAdmin, expiresAt })
  
   // 3. Store the session in cookies for optimistic auth checks
   const cookieStore = await cookies();
