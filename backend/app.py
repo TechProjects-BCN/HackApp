@@ -40,7 +40,7 @@ scheduler = APScheduler()
 app = Flask(__name__)
 scheduler = APScheduler()
 # Allow requests from localhost:3000 and specific IP ranges
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost", "http://127.0.0.1", r"http://192\.168\..*:3000", r"http://10\..*:3000"])
+CORS(app, supports_credentials=True, origins=[r"http://.*", r"https://.*"])
 database = Database(database=os.getenv('DB_NAME', 'techprojects'), user=os.getenv('DB_USER', 'techprojects'),
                     host=os.getenv('DB_HOST', '127.0.0.1'), password=os.getenv('DB_PASSWORD', '12341234'), port=5432)
 app.logger.setLevel(logging.INFO)
