@@ -58,6 +58,8 @@ export default function Queue() {
         return () => clearInterval(interval);
     }, [groups_in_front]);
 
+
+
     const queue_propieties = {
         "queueName": t('hotglue'),
         "queueIdName": queueType

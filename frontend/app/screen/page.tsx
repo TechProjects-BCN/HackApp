@@ -3,31 +3,27 @@
 import { useState, useEffect, useRef } from "react";
 import { getBackendUrl } from "../utils/config";
 
-
-
-
-
 export default function Screen() {
-  var [nextEvent, setNextEvent] = useState<string | null>(null);
-  var [currentEvent, setCurrentEvent] = useState<string | null>(null);
-  var [sign, setSign] = useState("-");
-  var [youtubeId, setYoutubeId] = useState<string | null>(null);
-  var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
-  var [cut, setCut] = useState<any[]>([]);
-  var [hot, setHot] = useState<any[]>([]);
-  var [cut_colors, setCut_colors] = useState<string[]>([]);
-  var [hotglue_colors, setHotGlue_colors] = useState<string[]>([]);
-  var [hotglue_colors, setHotGlue_colors] = useState<string[]>([]);
+  const [nextEvent, setNextEvent] = useState<string | null>(null);
+  const [currentEvent, setCurrentEvent] = useState<string | null>(null);
+  const [sign, setSign] = useState("-");
+  const [youtubeId, setYoutubeId] = useState<string | null>(null);
+  const [cut, setCut] = useState<any[]>([]);
+  const [hot, setHot] = useState<any[]>([]);
   const targetEpochRef = useRef(1745939420);
-  var [timeLeft, setTimeLeft] = useState(0);
-  var [loading, setLoading] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [loading, setLoading] = useState(true);
 
+  const [config, setConfig] = useState({
+    app_title: "Hack26",
+    app_subtitle: "MIT • CIC • UPC"
+  });
 
   useEffect(() => {
     const fetchData = async (IP: string) => {
       try {
-        var response = await fetch(IP);
-        var result = await response.json();
+        const response = await fetch(IP);
+        const result = await response.json();
         return result;
       } catch (error) {
         return {};
@@ -35,8 +31,8 @@ export default function Screen() {
     }
 
     const updateData = async () => {
-      var queue_data = await fetchData(`${getBackendUrl()}/queue`);
-      var countdown_data = await fetchData(`${getBackendUrl()}/countdown`);
+      const queue_data = await fetchData(`${getBackendUrl()}/queue`);
+      const countdown_data = await fetchData(`${getBackendUrl()}/countdown`);
 
       const current_cutter_status = queue_data["cutter_stations"] || [];
       const current_hot_status = queue_data["hot_glue_stations"] || [];
@@ -48,8 +44,10 @@ export default function Screen() {
       setCut(current_cutter_status);
       setHot(current_hot_status);
 
-      setCut(current_cutter_status);
-      setHot(current_hot_status);
+      setConfig({
+        app_title: countdown_data["app_title"] || "Hack26",
+        app_subtitle: countdown_data["app_subtitle"] || "MIT • CIC • UPC"
+      });
 
       if (countdown_data["target_epoch"]) {
         targetEpochRef.current = countdown_data["target_epoch"];
@@ -87,7 +85,6 @@ export default function Screen() {
   const minutes = Math.floor((timeLeft % 3600) / 60);
   const secs = timeLeft % 60;
 
-
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200 font-sans p-4 gap-4 relative">
       {/* Logo */}
@@ -98,14 +95,15 @@ export default function Screen() {
           className="h-12 md:h-16 object-contain"
         />
       </div>
+
       {/* Main Content */}
       <div className="w-3/5 flex flex-col gap-4 overflow-hidden">
         <div className="text-center space-y-2">
           <h1 className="text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
-            MIT • CIC • UPC
+            {config.app_subtitle}
           </h1>
           <div className="text-xl text-slate-400 font-medium tracking-wide">
-            Hackathon 2026
+            {config.app_title}
           </div>
         </div>
 
@@ -142,7 +140,7 @@ export default function Screen() {
       {/* Cutting Stations Sidebar */}
       <div className="w-1/5 flex flex-col gap-2 overflow-hidden">
         <div className="glass-card p-2 text-center">
-          <h2 className="text-base font-bold text-white uppercase tracking-wider">Cutting</h2>
+          <h2 className="text-base font-bold text-white uppercase tracking-wider">Box Cutter</h2>
         </div>
         <div className="flex-1 flex flex-col gap-2 min-h-0">
           {cut.map((item, index) => (

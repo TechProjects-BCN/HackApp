@@ -17,6 +17,8 @@ export default function Spot() {
     const [targetEpoch, settargetEpoch] = useState(60 * 10 + 30 + TimeNow);
     const [timeLeft, setTimeLeft] = useState(60 * 10 + 30);
     const [spotNumber, setSpotNumber] = useState("-");
+
+
     const spot_propietes = {
         "spotName": t('hotglue'),
         "spotIdName": spotType

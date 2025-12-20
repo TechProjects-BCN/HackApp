@@ -16,10 +16,12 @@ STATION_TIME = 60 * 10 + ACCEPT_TIME # seconds
 countdown_info = {
     "current_event": "Networking",
     "next_event": "Hackathon Start",
-    "target_epoch": 1745943020,
+    "target_epoch": 1745939420,
     "youtube_id": "xX4mBbJjdYM",
-    "station_duration": 10 # minutes
-}
+    "station_duration": 10,
+    "app_title": "Hack26",
+    "app_subtitle": "MIT • CIC • UPC"
+} # minutes
 
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
@@ -584,6 +586,13 @@ def admin_config():
         except:
             pass
             
+    # New Dynamic Config
+    if "app_title" in data:
+        countdown_info["app_title"] = data["app_title"]
+        
+    if "app_subtitle" in data:
+        countdown_info["app_subtitle"] = data["app_subtitle"]
+
     return {"status": "Config Updated"}, 200
 
 @app.route("/admin/config/language", methods=["GET", "POST"])

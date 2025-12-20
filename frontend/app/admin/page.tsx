@@ -8,15 +8,16 @@ import { getBackendUrl } from "../utils/config";
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("stations");
   const [users, setUsers] = useState<any[]>([]);
-  const [config, setConfig] = useState({
-    cutter: 4,
-    hotglue: 5,
-    event: "Hackathon Start",
-    current_event: "Networking",
-    target_epoch: 1745943020,
-    youtube_id: "xX4mBbJjdYM",
+  const [config, setConfig] = useState<any>({
+    event: "Loading...",
+    target_epoch: 0,
+    cutter: 0,
+    hotglue: 0,
+    youtube_id: "",
+    default_language: "en",
     station_duration: 10,
-    default_language: "en"
+    app_title: "Hack26",
+    app_subtitle: "MIT • CIC • UPC"
   });
 
   const [cut, setCut] = useState<any[]>([]);
@@ -52,13 +53,15 @@ export default function Admin() {
     try {
       const res = await fetch(`${getBackendUrl()}/countdown`);
       const data = await res.json();
-      setConfig(prev => ({
+      setConfig((prev: any) => ({
         ...prev,
         event: data.next_event || data.event, // handle legacy or new
         current_event: data.current_event || "Networking",
         target_epoch: data.target_epoch,
         youtube_id: data.youtube_id || prev.youtube_id,
-        station_duration: data.station_duration || 10
+        station_duration: data.station_duration || 10,
+        app_title: data.app_title || prev.app_title || "Hack26",
+        app_subtitle: data.app_subtitle || prev.app_subtitle || "MIT • CIC • UPC"
       }));
     } catch (e) { console.error(e); }
   };
@@ -67,7 +70,7 @@ export default function Admin() {
     try {
       const res = await fetch(`${getBackendUrl()}/admin/config/language`);
       const data = await res.json();
-      setConfig(prev => ({ ...prev, default_language: data.language }));
+      setConfig((prev: any) => ({ ...prev, default_language: data.language }));
     } catch (e) { console.error(e); }
   };
 
@@ -91,11 +94,13 @@ export default function Admin() {
         current_event: config.current_event,
         target_epoch: config.target_epoch,
         youtube_id: config.youtube_id,
-        station_duration: config.station_duration
+        station_duration: config.station_duration,
+        app_title: config.app_title,
+        app_subtitle: config.app_subtitle
       }),
       credentials: "include"
     });
-    alert("Event details updated! (Stations remained active)");
+    alert("Event details and app appearance updated!");
   };
 
   const updateStationConfig = async () => {
@@ -568,6 +573,32 @@ export default function Admin() {
         {activeTab === "system" && (
           <div className="space-y-8 max-w-4xl">
             <h2 className="text-xl font-bold text-white">System Configuration</h2>
+
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="text-lg font-bold text-white">App Appearance</h3>
+
+              <div className="space-y-2">
+                <label className="text-sm text-slate-400">App Title (e.g. Hack26)</label>
+                <input
+                  type="text"
+                  value={config.app_title || ""}
+                  onChange={(e) => setConfig({ ...config, app_title: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-slate-400">App Subtitle (e.g. MIT • CIC • UPC)</label>
+                <input
+                  type="text"
+                  value={config.app_subtitle || ""}
+                  onChange={(e) => setConfig({ ...config, app_subtitle: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
+                />
+              </div>
+
+              <button onClick={updateEventConfig} className="btn-primary w-full py-2 text-sm">Update Appearance</button>
+            </div>
 
             <div className="glass-card p-6 space-y-4">
               <h3 className="text-lg font-bold text-white">Default Language</h3>

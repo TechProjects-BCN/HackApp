@@ -11,6 +11,10 @@ export default function Index() {
   const [groupName, setGroupName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const { t } = useLanguage();
+  const [config, setConfig] = useState({
+    app_title: "",
+    app_subtitle: ""
+  });
 
   useEffect(() => {
     fetch(`${getBackendUrl()}/info`, { credentials: "include" }).then(res => {
@@ -20,7 +24,18 @@ export default function Index() {
           setIsAdmin(data.isAdmin || false);
         })
       }
-    })
+    });
+
+    fetch(`${getBackendUrl()}/countdown`).then(res => {
+      if (res.ok) {
+        res.json().then(data => {
+          setConfig({
+            app_title: data.app_title || "",
+            app_subtitle: data.app_subtitle || ""
+          });
+        });
+      }
+    });
   }, [])
 
   const joinQueue = async (queueType: string) => {
@@ -39,9 +54,9 @@ export default function Index() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-1">
           <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
-            {t('title')}
+            {config.app_title || t('title')}
           </h1>
-          <p className="text-slate-400 text-base">{t('subtitle')}</p>
+          <p className="text-slate-400 text-base">{config.app_subtitle || t('subtitle')}</p>
           {groupName && (
             <p className="text-lg font-medium text-white pt-2 animate-fade-in">
               {t('welcome')} <span className="text-blue-400">{groupName}</span>!
