@@ -1,53 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import "./style.css";
+import { useState, useEffect, useRef } from "react";
+import { getBackendUrl } from "../utils/config";
 
-const NUMBER_OF_CUTTING_STATIONS = 4;
-const NUMBER_OF_HOT_GLUE_STATIONS = 5;
 
-const QUEUE_IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/queue`;
-const COUNTDOWN_IP = `http://${process.env.NEXT_PUBLIC_BKG_HOST}/countdown`;
+
+
 
 export default function Screen() {
-  var [event, setEvent] = useState("Lunch");
+  var [nextEvent, setNextEvent] = useState<string | null>(null);
+  var [currentEvent, setCurrentEvent] = useState<string | null>(null);
   var [sign, setSign] = useState("-");
+  var [youtubeId, setYoutubeId] = useState<string | null>(null);
   var color_options = ["text-green-600", "text-red-600", "text-pink-600"];
-  var [cut, setCut] = useState<string[]>(["AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE"]);
-  var [hot, setHot] = useState<string[]>(["AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE"]);
-  var cutting_colors = Array.from({length: NUMBER_OF_CUTTING_STATIONS}, () => "text-green-600");
-  var hotGlue_colors = Array.from({length: NUMBER_OF_HOT_GLUE_STATIONS}, () => "text-green-600");
-  var [cut_colors, setCut_colors] = useState(cutting_colors);
-  var [hotglue_colors, setHotGlue_colors] = useState(hotGlue_colors);
-  var cutting_status = [0, 1, 0, 0];
-  var hotGlue_status = [0, 1, 0, 0, 2];
-  var targetEpoch = 1745939420;
-  const [timeLeft, setTimeLeft] = useState(targetEpoch - Math.floor(Date.now() / 1000));
-  
-  const StateToAvail = (state: number[], colors: string[], number_of_stations: number) =>
-  {
-    var temp = [];
-    for (var s = 0; s < number_of_stations; s++)
-    {
-      if (state[s] == 0)
-        {
-          colors[s] = color_options[0];
-          temp[s] = "AVAILABLE";
-        }
-        else if (state[s] == 2)
-        {
-          colors[s] = color_options[2];
-          temp[s] = "UNAVAILABLE";
-        }
-        else
-        {
-          colors[s] = color_options[1];
-          temp[s] = "OCCUPIED";
-        }
-    }
-    return temp
-  }
-  // Update Variables
+  var [cut, setCut] = useState<any[]>([]);
+  var [hot, setHot] = useState<any[]>([]);
+  var [cut_colors, setCut_colors] = useState<string[]>([]);
+  var [hotglue_colors, setHotGlue_colors] = useState<string[]>([]);
+  var [hotglue_colors, setHotGlue_colors] = useState<string[]>([]);
+  const targetEpochRef = useRef(1745939420);
+  var [timeLeft, setTimeLeft] = useState(0);
+  var [loading, setLoading] = useState(true);
+
+
   useEffect(() => {
     const fetchData = async (IP: string) => {
       try {
@@ -58,81 +33,162 @@ export default function Screen() {
         return {};
       }
     }
-    const interval = setInterval(async () => {
-      var queue_data = await fetchData(QUEUE_IP);
-      var countdown_data = await fetchData(COUNTDOWN_IP);
-      cutting_status = queue_data["cutter_stations"];
-      hotGlue_status = queue_data["hot_glue_stations"];
-      setEvent(countdown_data["event"]);
-      setCut(StateToAvail(cutting_status, cutting_colors, NUMBER_OF_CUTTING_STATIONS));
-      setCut_colors(cutting_colors);
-        
-      setHot(StateToAvail(hotGlue_status, hotGlue_colors, NUMBER_OF_HOT_GLUE_STATIONS));
-      setHotGlue_colors(hotGlue_colors);
-      targetEpoch = countdown_data["target_epoch"];
-      if (targetEpoch > Math.floor(Date.now() / 1000))
-      {
-        setTimeLeft(targetEpoch - Math.floor(Date.now() / 1000));
+
+    const updateData = async () => {
+      var queue_data = await fetchData(`${getBackendUrl()}/queue`);
+      var countdown_data = await fetchData(`${getBackendUrl()}/countdown`);
+
+      const current_cutter_status = queue_data["cutter_stations"] || [];
+      const current_hot_status = queue_data["hot_glue_stations"] || [];
+
+      setNextEvent(countdown_data["next_event"] || countdown_data["event"]);
+      setCurrentEvent(countdown_data["current_event"] || "Networking");
+      setYoutubeId(countdown_data["youtube_id"] || "xX4mBbJjdYM");
+
+      setCut(current_cutter_status);
+      setHot(current_hot_status);
+
+      setCut(current_cutter_status);
+      setHot(current_hot_status);
+
+      if (countdown_data["target_epoch"]) {
+        targetEpochRef.current = countdown_data["target_epoch"];
+      }
+      setLoading(false);
+    };
+
+    updateData(); // Run immediately
+    const fetchInterval = setInterval(updateData, 1000);
+
+    // Separate countdown timer
+    const listTimer = setInterval(() => {
+      const target = targetEpochRef.current;
+      const now = Math.floor(Date.now() / 1000);
+      if (target > now) {
+        setTimeLeft(target - now);
         setSign("-");
-      } else{
-        setTimeLeft(Math.floor(Date.now() / 1000) - targetEpoch);
+      } else {
+        setTimeLeft(now - target);
         setSign("+");
       }
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [targetEpoch]);
-  
+    return () => {
+      clearInterval(fetchInterval);
+      clearInterval(listTimer);
+    };
+  }, []);
+
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-500 font-mono">Loading Dashboard...</div>
+  }
+
   const hours = Math.floor(timeLeft / 3600);
   const minutes = Math.floor((timeLeft % 3600) / 60);
   const secs = timeLeft % 60;
 
+
   return (
-    <div className="flex">
-      <div className="w-3/5 h-screen bg-white" >
-        <h1 className="text-[2.5vw] text-center font-bold mt-[2.5vw]">
-          MIT&CIC&UPC Hackathon 2026
-        </h1>
-        <div className="text-[1.5vw] text-center font-bold mt-[2vw]">
-          Time Until {event}: 
-        </div>
-        <div className="text-[4vw] text-center font-bold">
-          T {sign} {hours}:{minutes}:{secs}
-        </div>
-        <div className="w-full h-3/5 mt-8">
-        <iframe
-          className="w-full h-full"
-          src="https://www.youtube.com/embed/xX4mBbJjdYM"
-          title="YouTube Video"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-        </div>
+    <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-200 font-sans p-4 gap-4 relative">
+      {/* Logo */}
+      <div className="absolute top-6 left-6 z-50 ml-4 bg-white p-2 rounded-xl shadow-lg">
+        <img
+          src="/EdgertonCenter.png"
+          alt="MIT Edgerton Center"
+          className="h-12 md:h-16 object-contain"
+        />
       </div>
-      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
-        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
-            Cutting Stations
-        </div>
-        {Array.from({ length: NUMBER_OF_CUTTING_STATIONS }).map((_, index) => (
-        <div key={index} className="flex flex-col items-center justify-center">
-          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${cut_colors[index]}`}>
-              Nº{index + 1} {cut[index]}
+      {/* Main Content */}
+      <div className="w-3/5 flex flex-col gap-4 overflow-hidden">
+        <div className="text-center space-y-2">
+          <h1 className="text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+            MIT • CIC • UPC
+          </h1>
+          <div className="text-xl text-slate-400 font-medium tracking-wide">
+            Hackathon 2026
           </div>
         </div>
-        ))}
-      </div>
-      <div className="w-1/5 h-screen border-l-[0.2vw] border-black bg-gray-400">
-        <div className="w-full h-[2.8vw] text-[1.7vw] font-bold mt-[1.8vw] text-center">
-            Hot Glue Stations
-        </div>
-        {Array.from({ length: NUMBER_OF_HOT_GLUE_STATIONS }).map((_, index) => (
-        <div key={index} className="flex flex-col items-center justify-center">
-          <div className={`w-3/4 h-[4.5vw] text-[1.4vw] flex items-center justify-center mt-[2.2vw] bg-gray-600 ${hotglue_colors[index]}`}>
-              Nº{index + 1} {hot[index]}
+
+        <div className="glass-card flex-1 p-4 relative overflow-hidden flex flex-col">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5"></div>
+
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center space-y-6">
+            <div className="text-center space-y-1">
+              <div className="text-2xl text-white font-bold uppercase tracking-widest mb-4">
+                Current Event: <span className="text-blue-400">{currentEvent}</span>
+              </div>
+              <div className="text-sm text-slate-400 font-medium uppercase tracking-widest">
+                Next Event: {nextEvent}
+              </div>
+              <div className="text-7xl font-bold font-mono text-white tabular-nums tracking-tighter">
+                T{sign} {hours}:{minutes < 10 ? `0${minutes}` : minutes}:{secs < 10 ? `0${secs}` : secs}
+              </div>
+            </div>
+
+            <div className="w-[90%] aspect-video rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                title="YouTube Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
           </div>
         </div>
-        ))}
+      </div>
+
+      {/* Cutting Stations Sidebar */}
+      <div className="w-1/5 flex flex-col gap-2 overflow-hidden">
+        <div className="glass-card p-2 text-center">
+          <h2 className="text-base font-bold text-white uppercase tracking-wider">Cutting</h2>
+        </div>
+        <div className="flex-1 flex flex-col gap-2 min-h-0">
+          {cut.map((item, index) => (
+            <div key={index} className="glass-card flex-1 px-3 flex flex-row items-center justify-between gap-1 min-h-0">
+              <div className="flex flex-col justify-center">
+                <div className="text-[9px] font-mono text-slate-500 uppercase tracking-wider leading-none mb-0.5">Station</div>
+                <div className={`text-2xl font-bold leading-none ${item === 0 ? "text-green-400" :
+                  item === 2 ? "text-slate-600" : "text-red-400"
+                  }`}>
+                  #{index + 1}
+                </div>
+              </div>
+              <div className={`text-[10px] font-bold px-2 py-1 rounded-md text-center truncate max-w-[60%] ${item === 0 ? "bg-green-500/10 text-green-400" :
+                item === 2 ? "bg-slate-500/10 text-slate-500" : "bg-red-500/10 text-red-400"
+                }`}>
+                {item === 0 ? "AVAILABLE" : item === 2 ? "UNAVAILABLE" : (typeof item === 'object' ? (item as any).name : "OCCUPIED")}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hot Glue Stations Sidebar */}
+      <div className="w-1/5 flex flex-col gap-2 overflow-hidden">
+        <div className="glass-card p-2 text-center">
+          <h2 className="text-base font-bold text-white uppercase tracking-wider">Hot Glue</h2>
+        </div>
+        <div className="flex-1 flex flex-col gap-2 min-h-0">
+          {hot.map((item, index) => (
+            <div key={index} className="glass-card flex-1 px-3 flex flex-row items-center justify-between gap-1 min-h-0">
+              <div className="flex flex-col justify-center">
+                <div className="text-[9px] font-mono text-slate-500 uppercase tracking-wider leading-none mb-0.5">Station</div>
+                <div className={`text-2xl font-bold leading-none ${item === 0 ? "text-green-400" :
+                  item === 2 ? "text-slate-600" : "text-red-400"
+                  }`}>
+                  #{index + 1}
+                </div>
+              </div>
+              <div className={`text-[10px] font-bold px-2 py-1 rounded-md text-center truncate max-w-[60%] ${item === 0 ? "bg-green-500/10 text-green-400" :
+                item === 2 ? "bg-slate-500/10 text-slate-500" : "bg-red-500/10 text-red-400"
+                }`}>
+                {item === 0 ? "AVAILABLE" : item === 2 ? "UNAVAILABLE" : (typeof item === 'object' ? (item as any).name : "OCCUPIED")}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

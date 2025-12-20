@@ -1,9 +1,10 @@
 "use client";
 
-import "@/app/phone.css";
+
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from "react";
 import { useParams } from 'next/navigation';
+import { getBackendUrl } from "../../utils/config";
 
 
 export default function Queue() {
@@ -13,77 +14,99 @@ export default function Queue() {
     const params = useParams(); // Gets dynamic params from the URL
     const queueType = params.queueType;
     const leaveQueue = async (queueType: any) => {
-        await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/removequeue`, {
-                headers: { "Content-Type": "application/json" },
-                method: "POST",
-                body: JSON.stringify({"queueType": queueType}),
-                credentials: "include",
-          });
-          router.push(`/`);
-      };
+        await fetch(`${getBackendUrl()}/removequeue`, {
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+            body: JSON.stringify({ "queueType": queueType }),
+            credentials: "include",
+        });
+        router.push(`/`);
+    };
     useEffect(() => {
         const fetchData = async () => {
-          try {
-            var response = await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/status`, {
-                headers: { "Content-Type": "application/json" },
-                method: "GET",
-                credentials: "include"
-          });
-            var result = await response.json();
-            return result;
-          } catch (error) {
-            return {};
-          }
+            try {
+                var response = await fetch(`${getBackendUrl()}/status`, {
+                    headers: { "Content-Type": "application/json" },
+                    method: "GET",
+                    credentials: "include"
+                });
+                var result = await response.json();
+                return result;
+            } catch (error) {
+                return {};
+            }
         }
         const interval = setInterval(async () => {
-          var data = await fetchData();
+            var data = await fetchData();
             console.log(data);
-            if (data[`spot${queueType}ToAccept`]){
+            if (data[`spot${queueType}ToAccept`]) {
                 router.push(`/spot/${queueType}`);
 
-            } else if (data[`${queueType}Station`]){
+            } else if (data[`${queueType}Station`]) {
                 router.push(`/inside/${queueType}`);
 
-            } else if (data[`${queueType}Queue`]){
+            } else if (data[`${queueType}Queue`]) {
                 setGroupsInFront(data[`${queueType}Queue`]["position"]);
                 setEstimatedTimeRemaining(data[`${queueType}Queue`]["ETA"]);
-            } else{
+            } else {
                 router.push("/");
             }
         }, 1000);
-    
+
         return () => clearInterval(interval);
-      }, [groups_in_front]);
-      
+    }, [groups_in_front]);
+
     const queue_propieties = {
         "queueName": "Hot Glue",
         "queueIdName": queueType
-    } 
-    if (queueType == "cutter")
-    {
+    }
+    if (queueType == "cutter") {
         queue_propieties["queueName"] = "Box Cutter";
     }
     return (
-        <div className="h-dvh">
-            <form className="h-screen w-screen flex flex-wrap flex-col ">
-                <div className="flex items-center justify-center w-screen h-[5vh] mt-[5vh] text-[4.5vh]">
-                    <h1>Hackathon 2026 App</h1>
+
+        <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+            <div className="w-full max-w-md space-y-8">
+                <div className="text-center space-y-2">
+                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+                        {queue_propieties["queueName"]} Queue
+                    </h1>
+                    <div className="flex items-center justify-center gap-2 text-slate-400">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                        </span>
+                        Live Status
+                    </div>
                 </div>
-                <div className="flex items-center justify-center w-screen h-[5vh] mt-[13vh] text-[3.5vh] text-center">
-                    <h1 className="w-[70vw]">You are in the {queue_propieties["queueName"]} Queue</h1>
+
+                <div className="glass-card p-8 space-y-6 text-center">
+                    <div className="space-y-1">
+                        <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Groups Ahead</div>
+                        <div className="text-6xl font-bold text-white tracking-tighter">
+                            {groups_in_front}
+                        </div>
+                    </div>
+
+                    <div className="h-px bg-white/10 w-full" />
+
+                    <div className="space-y-1">
+                        <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Est. Wait Time</div>
+                        <div className="text-2xl font-bold text-blue-400">
+                            ~{estimated_time_remaining} min
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center justify-center w-screen h-[5vh] mt-[8vh] text-[2.0vh] text-center">
-                    <h1 className="w-[70vw]">You have {groups_in_front} groups in front of you</h1>
-                </div>
-                <div className="flex items-center justify-center w-screen h-[5vh] mt-[0.5vh] text-[2.0vh] text-center">
-                    <h1 className="w-[70vw]">Estimated Time Remaining: {estimated_time_remaining} min</h1>
-                </div>
-                <div className="flex flex-col items-center justify-center">
-                    <button type="button" onClick={() => leaveQueue(queueType)} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[7.2vh] bg-red-600`}>
-                        Leave Queue
-                    </button>
-                </div>
-            </form>
+
+                <button
+                    type="button"
+                    onClick={() => leaveQueue(queueType)}
+                    className="btn-danger w-full"
+                >
+                    Leave Queue
+                </button>
+            </div>
         </div>
     );
+
 }

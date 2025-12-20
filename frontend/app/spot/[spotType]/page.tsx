@@ -1,9 +1,10 @@
 "use client";
 
-import "@/app/phone.css";
+
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import { getBackendUrl } from "../../utils/config";
 
 
 export default function Spot() {
@@ -18,87 +19,112 @@ export default function Spot() {
         "spotName": "Hot Glue",
         "spotIdName": spotType
     }
-    if (spotType == "cutter")
-    {
+    if (spotType == "cutter") {
         spot_propietes["spotName"] = "Box Cutter";
     }
-    
+
     async function AcceptSpot(request: any) {
-        await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/accept`, {
+        await fetch(`${getBackendUrl()}/accept`, {
             headers: { "Content-Type": "application/json" },
             method: "POST",
-            body: JSON.stringify({"spotType": spotType}),
+            body: JSON.stringify({ "spotType": spotType }),
             credentials: "include",
         });
         router.push(`/inside/${spotType}`);
     }
 
     async function GiveUpSpot(request: any) {
-        await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/giveupspot`, {
+        await fetch(`${getBackendUrl()}/giveupspot`, {
             headers: { "Content-Type": "application/json" },
             method: "POST",
-            body: JSON.stringify({"spotType": spotType}),
+            body: JSON.stringify({ "spotType": spotType }),
             credentials: "include",
-        });        
+        });
         router.push(`/queue/${spotType}`);
     }
     useEffect(() => {
         const fetchData = async () => {
-          try {
-            var response = await fetch(`http://${process.env.NEXT_PUBLIC_BKG_HOST}/status`, {
-                headers: { "Content-Type": "application/json" },
-                method: "GET",
-                credentials: "include"
-          });
-            var result = await response.json();
-            return result;
-          } catch (error) {
-            return {};
-          }
+            try {
+                var response = await fetch(`${getBackendUrl()}/status`, {
+                    headers: { "Content-Type": "application/json" },
+                    method: "GET",
+                    credentials: "include"
+                });
+                var result = await response.json();
+                return result;
+            } catch (error) {
+                return {};
+            }
         }
         const interval = setInterval(async () => {
             setTimeLeft(targetEpoch - (Math.floor(Date.now() / 1000) - TimeNow));
 
-          var data = await fetchData();
+            var data = await fetchData();
             console.log(data);
-            if (data[`spot${spotType}ToAccept`]){
+            if (data[`spot${spotType}ToAccept`]) {
                 setSpotNumber(data[`spot${spotType}ToAccept`]["spotId"])
-            } else if (data[`${spotType}Station`]){
+            } else if (data[`${spotType}Station`]) {
                 router.push(`/inside/${spotType}`);
-            } else if (data[`${spotType}Queue`]){
+            } else if (data[`${spotType}Queue`]) {
                 router.push(`/queue/${spotType}`);
-            } else{
+            } else {
                 router.push("/");
             }
         }, 1000);
-    
+
         return () => clearInterval(interval);
-      }, [targetEpoch]);
+    }, [targetEpoch]);
 
     const secs = timeLeft % 60;
     return (
-    <div className="h-dvh bg-[#006B10]">
-        <div className="h-screen w-screen flex flex-wrap flex-col ">
-            <div className="flex items-center justify-center w-screen h-[5vh] mt-[5vh] text-[4.5vh]">
-                <h1>Hackathon 2026 App</h1>
-            </div>
-            <div className="flex items-center justify-center w-screen h-[5vh] mt-[13vh] text-[3.5vh] text-center">
-                <h1 className="w-[70vw]">You have a spot in {spot_propietes["spotName"]} Station number {spotNumber} !!</h1>
-            </div>
-            <div className="flex items-center justify-center w-screen h-[5vh] mt-[8vh] text-[3.0vh] text-center">
-                <h1 className="w-[70vw]">{secs} seconds left</h1>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-                <button type="button" onClick={() => AcceptSpot(spot_propietes["spotIdName"])} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[7.2vh] bg-[#73B600]`}>
-                    Take Spot
-                </button>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-                <button type="button" onClick={() => GiveUpSpot(spot_propietes["spotIdName"])} className={`w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[4.2vh] bg-red-600`}>
-                    Give Up Spot
-                </button>
+        <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-green-900 via-green-950 to-black">
+            <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500">
+                <div className="text-center space-y-4">
+                    <div className="inline-block p-3 rounded-full bg-green-500/20 text-green-400 mb-4 ring-1 ring-green-500/30">
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h1 className="text-4xl font-bold text-white">
+                        Spot Available!
+                    </h1>
+                    <p className="text-green-200/80 text-lg">
+                        Proceed to {spot_propietes["spotName"]} Station
+                    </p>
+                </div>
+
+                <div className="glass-card p-8 text-center border-green-500/30 bg-green-900/10">
+                    <div className="text-sm text-green-300 uppercase tracking-wider font-semibold mb-2">Station Number</div>
+                    <div className="text-7xl font-bold text-white tracking-tighter mb-6">
+                        {spotNumber}
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 text-green-300 font-mono text-xl border border-green-500/20">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {secs}s remaining
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <button
+                        type="button"
+                        onClick={() => AcceptSpot(spot_propietes["spotIdName"])}
+                        className="w-full relative px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-white font-bold text-lg shadow-lg shadow-green-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-green-500/40 active:scale-[0.98]"
+                    >
+                        I'm Here!
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => GiveUpSpot(spot_propietes["spotIdName"])}
+                        className="w-full px-8 py-4 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors font-medium text-sm"
+                    >
+                        Cancel / Give Up Spot
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
     );
 }

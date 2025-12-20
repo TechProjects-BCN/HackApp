@@ -9,7 +9,6 @@ INSERT INTO groups(username, passw, groupName, groupNumber, isAdmin, eventID) VA
 INSERT INTO groups(username, passw, groupName, groupNumber, isAdmin, eventID) VALUES ('robotic', 'arm', 'Robotic Arm', 4, 0, 0);
 INSERT INTO groups(username, passw, groupName, groupNumber, isAdmin, eventID) VALUES ('rc', 'car', 'RC Car', 5, 0, 0);
 INSERT INTO groups(username, passw, groupName, groupNumber, isAdmin, eventID) VALUES ('solar', 'etcher', 'Solar Etcher', 6, 0, 0);
-INSERT INTO groups(username, passw, groupName, groupNumber, isAdmin, eventID) VALUES ('admin', 'admin', 'Administrator', 1, 0, 0);
 INSERT INTO admins(groupId) VALUES (1);
 
 CREATE USER postgres SUPERUSER;

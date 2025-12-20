@@ -1,46 +1,74 @@
 "use client";
 
-import { Poppins } from 'next/font/google';
 import { login } from '@/app/actions/auth'
 import { useActionState } from 'react';
 import { cn } from '@/app/lib/utils';
-import "@/app/phone.css";
-
-const font = Poppins({
-    subsets: ["latin"],
-    weight: ["400"]
-})
-
+import Image from 'next/image';
 
 export default function LoginRoute() {
     const [state, action, pending] = useActionState(login, undefined)
     return (
-        <div className="h-dvh">
-            <form action={action} className="h-screen w-screen flex flex-wrap flex-col ">
-                <div className="flex items-center justify-center w-screen h-[5vh] mt-[5vh] text-[4.5vh]">
-                    <h1>Hackathon 2026 App</h1>
+        <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+            <div className="w-full max-w-md space-y-8">
+                <div className="text-center space-y-2">
+                    <h1 className="text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+                        Hack26
+                    </h1>
+                    <p className="text-slate-400 text-lg">Login to your account</p>
                 </div>
-                <div className={`flex items-center justify-center w-screen mt-[5vh] text-[1.7vh] ${font.className}`}>
-                    <h1>Login with the username</h1>
-                </div>
-                <div className={`flex items-center justify-center w-screen mt-[0.4vh] text-[1.7vh] ${font.className}`}>
-                    <h1>and password given to your group</h1>
-                </div>
-                <div className={cn("flex items-center justify-center mt-[5vh] text-[2.5vh] text-black ${font.className}", font.className)}>
-                    <input className='w-1/2 h-[5vh]' type="username" name="username" placeholder="Username" required />
-                </div>
-                <div className={cn("flex items-center justify-center mt-[5vh] text-[2.5vh] text-black ${font.className}", font.className)}>
-                    <input autoComplete='on' className='w-1/2 h-[5vh]' type="password" name="password" placeholder="Password" required />
-                </div>
-                <div className={cn("flex items-center justify-center mt-[5vh] text-[2.5vh] text-white ${font.className}", font.className)}>
-                    {state?.message && <p>{state.message}</p>}
-                </div>
-                <div className="flex flex-col items-center justify-center">
-                    <button type="submit" className="w-1/2 h-[6.5vh] text-[2.2vh] flex items-center justify-center mt-[5vh] text-white hover:bg-gray-700 focus:ring-4 bg-gray-500 rounded-lg text-sm px-5 py-2.5 me-2 mb-2  focus:outline-none">
-                        Login
+
+                <form action={action} className="glass-card p-8 space-y-6">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300 ml-1">Username</label>
+                            <input
+                                className='w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all'
+                                type="username"
+                                name="username"
+                                placeholder="Enter your username"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+                            <input
+                                autoComplete='on'
+                                className='w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all'
+                                type="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {state?.message && (
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                            {state.message}
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="btn-primary w-full"
+                        disabled={pending}
+                    >
+                        {pending ? 'Logging in...' : 'Login'}
                     </button>
+                </form>
+
+                <div className="flex justify-center opacity-50 hover:opacity-100 transition-opacity">
+                    <div className="bg-white p-2 rounded-xl">
+                        <Image
+                            className="w-auto h-16"
+                            src="/EdgertonCenter.png"
+                            width={600}
+                            height={400}
+                            alt="MIT Edgerton Center"
+                        />
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     );
 }

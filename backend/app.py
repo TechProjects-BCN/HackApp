@@ -13,8 +13,10 @@ CUTTER_STATIONS = 4
 ACCEPT_TIME = 30 # seconds
 STATION_TIME = 60 * 10 + ACCEPT_TIME # seconds
 countdown_info = {
-    "event": "Hackathon Start",
+    "current_event": "Networking",
+    "next_event": "Hackathon Start",
     "target_epoch": 1745943020,
+    "youtube_id": "xX4mBbJjdYM"
 }
 
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
@@ -26,7 +28,10 @@ hot_glue_stations_epochs = [None for _ in range(HOT_GLUE_STATIONS)]
 
 app = Flask(__name__)
 scheduler = APScheduler()
-CORS(app, supports_credentials=True, origins=["*"])
+app = Flask(__name__)
+scheduler = APScheduler()
+# Allow requests from localhost:3000 and specific IP ranges
+CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", r"http://192\.168\..*:3000", r"http://10\..*:3000"])
 database = Database(database=os.getenv('DB_NAME', 'techprojects'), user=os.getenv('DB_USER', 'techprojects'),
                     host=os.getenv('DB_HOST', '127.0.0.1'), password=os.getenv('DB_PASSWORD', '12341234'), port=5432)
 app.logger.setLevel(logging.INFO)
@@ -85,8 +90,8 @@ def updater():
     app.logger.info(f"Queues: Cutter: {cutter_queue}  Hot Glue: {hot_glue_queue} Stations: Cutter: {cutter_stations}  Hot Glue: {hotglue_stations} To Be Accepted:  Hot Glue: {spot_hotglue}  Cutter: {spot_cutter}")
 
 def getGroup(groupId):
-    groupId, groupName, groupNumber, eventID = database.get_group(groupId)[0]
-    return Group(groupId=groupId, groupNumber=groupNumber, name=groupName, eventId=eventID)
+    groupId, groupName, groupNumber, eventID, members, username, is_admin = database.get_group(groupId)[0]
+    return Group(groupId=groupId, groupNumber=groupNumber, name=groupName, eventId=eventID, members=members, username=username, is_admin=is_admin)
 
 def check_admin():
     session_cookie = request.cookies.get('session')
@@ -202,7 +207,8 @@ def info():
     if not valid or not session["sessionId"]:
         return Response({"Not Authorized": ""}, status=401)  
     group_info = getGroup(session["groupId"])
-    return {"name": group_info.name, "groupNumber": group_info.groupNumber}
+    isAdmin = database.check_admin(session["groupId"])
+    return {"name": group_info.name, "groupNumber": group_info.groupNumber, "isAdmin": isAdmin, "username": group_info.username, "members": group_info.members}
 
 @app.route("/joinqueue", methods=["POST"])
 def joinqueue():
@@ -290,6 +296,150 @@ def status():
             break
 
     return response, 200
+
+@app.route("/admin/users", methods=["GET", "POST"])
+def admin_users():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    if request.method == "GET":
+        groups = database.get_all_groups()
+        # Convert to list of dicts
+        groups_list = [{"groupId": g[0], "name": g[1], "number": g[2], "eventId": g[3], "members": g[4], "username": g[5], "isAdmin": g[6]} for g in groups]
+        return {"users": groups_list}, 200
+    
+    elif request.method == "POST":
+        data = request.json
+        print(f"DEBUG: admin_users POST received data: {data}")
+        # basic update
+        if "groupId" in data and "name" in data and "number" in data:
+            password = data.get("password") # Optional
+            members = data.get("members") # Optional
+            username = data.get("username") # Optional
+            is_admin = data.get("isAdmin") # Optional
+            database.update_group(data["groupId"], data["name"], data["number"], password, members, username, is_admin)
+            return {"status": "Updated"}, 200
+        return {"error": "Invalid Data"}, 400
+
+@app.route("/admin/users/create", methods=["POST"])
+def admin_create_user():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    data = request.json
+    if "name" in data and "number" in data:
+        password = data.get("password")
+        members = data.get("members")
+        username = data.get("username")
+        is_admin = data.get("isAdmin")
+        # Default eventId to 1 for now
+        new_id = database.create_group(data["name"], data["number"], 1, password, members, username, is_admin)
+        return {"status": "Created", "groupId": new_id}, 200
+    return {"error": "Missing name or number"}, 400
+
+@app.route("/admin/users/delete", methods=["POST"])
+def admin_delete_user():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    data = request.json
+    if "groupId" in data:
+        success = database.delete_group(data["groupId"])
+        if success:
+            return {"status": "Deleted"}, 200
+        else:
+             return {"error": "Delete Failed"}, 500
+    return {"error": "Missing groupId"}, 400
+
+@app.route("/admin/config", methods=["POST"])
+def admin_config():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    data = request.json
+    global CUTTER_STATIONS, HOT_GLUE_STATIONS, cutter_stations, cutter_stations_epochs, hotglue_stations, hot_glue_stations_epochs
+    
+    if "cutter_stations" in data:
+        new_count = int(data["cutter_stations"])
+        if new_count != CUTTER_STATIONS:
+            CUTTER_STATIONS = new_count
+            # Resize lists - Resetting for safety in this simple implementation
+            # Ideally we would preserve existing state where possible
+            cutter_stations = [0 for _ in range(CUTTER_STATIONS)]
+            cutter_stations_epochs = [None for _ in range(CUTTER_STATIONS)]
+            
+    if "hot_glue_stations" in data:
+        new_count = int(data["hot_glue_stations"])
+        if new_count != HOT_GLUE_STATIONS:
+            HOT_GLUE_STATIONS = new_count
+            hotglue_stations = [0 for _ in range(HOT_GLUE_STATIONS)]
+            hot_glue_stations_epochs = [None for _ in range(HOT_GLUE_STATIONS)]
+
+    if "event" in data:
+        countdown_info["event"] = data["event"]
+    
+    if "target_epoch" in data:
+        try:
+            countdown_info["target_epoch"] = int(data["target_epoch"])
+        except:
+            pass
+
+    if "youtube_id" in data:
+        countdown_info["youtube_id"] = data["youtube_id"]
+            
+    return {"status": "Config Updated"}, 200
+
+@app.route("/admin/station/clear", methods=["POST"])
+def admin_clear_station():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+        
+    data = request.json
+    station_type = data.get("type")
+    station_index = data.get("index") # 0-indexed
+    
+    if station_type == "cutter" and 0 <= station_index < CUTTER_STATIONS:
+        cutter_stations[station_index] = 0
+        cutter_stations_epochs[station_index] = None
+    elif station_type == "hotglue" and 0 <= station_index < HOT_GLUE_STATIONS:
+        hotglue_stations[station_index] = 0
+        hot_glue_stations_epochs[station_index] = None
+    else:
+        return {"error": "Invalid station"}, 400
+        
+    return {"status": "Cleared"}, 200
+
+@app.route("/admin/station/toggle_disable", methods=["POST"])
+def admin_toggle_disable():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+        
+    data = request.json
+    station_type = data.get("type")
+    station_index = data.get("index")
+    
+    if station_type == "cutter" and 0 <= station_index < CUTTER_STATIONS:
+        if cutter_stations[station_index] == 2:
+            cutter_stations[station_index] = 0 # Re-enable
+        else:
+            cutter_stations[station_index] = 2 # Disable
+            cutter_stations_epochs[station_index] = None
+    elif station_type == "hotglue" and 0 <= station_index < HOT_GLUE_STATIONS:
+        if hotglue_stations[station_index] == 2:
+            hotglue_stations[station_index] = 0 # Re-enable
+        else:
+            hotglue_stations[station_index] = 2 # Disable
+            hot_glue_stations_epochs[station_index] = None
+    else:
+        return {"error": "Invalid station"}, 400
+        
+    return {"status": "Toggled"}, 200
 
 def main():
     scheduler.add_job(func=updater, trigger='interval', id='job', seconds=10)

@@ -6,6 +6,9 @@ class Group:
     groupId: int
     groupNumber: int
     eventId: int
+    members: str = ""
+    username: str = ""
+    is_admin: bool = False
 
 @dataclass
 class GroupToBeAccepted:

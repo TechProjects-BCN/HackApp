@@ -22,13 +22,17 @@ class Database:
         try:
             self.db_lock.acquire(True)
             self.cursor.execute(f"""
-                        SELECT groupId, groupName, groupNumber, eventID FROM groups WHERE groupId = {groupId}
+                        SELECT groupId, groupName, groupNumber, eventID, members, username, isadmin FROM groups WHERE groupId = {groupId}
                         """)
             output = self.cursor.fetchall()
             self.db.commit()
+            return output
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in get_group: {e}")
+            raise e
         finally:
             self.db_lock.release()
-        return output
     
     def write_spot_acceptance(self, group: GroupToBeAccepted, spotType: str):
         try:
@@ -37,6 +41,10 @@ class Database:
                         INSERT INTO accepted(groupId, spotId, spotType, groupName, groupNumber, eventID, AcceptedTime) VALUES ({group.group.groupId}, {group.slot}, '{spotType}', '{group.group.name}', {group.group.groupNumber}, {group.group.eventId}, {time.time()})
                         """)
             self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in write_spot_acceptance: {e}")
+            raise e
         finally:
             self.db_lock.release()
 
@@ -52,6 +60,10 @@ class Database:
                         INSERT INTO spots(acceptedId, groupId, spotId, spotType, groupName, groupNumber, eventID, LeftTime) VALUES ({acceptedId}, {group.groupId}, {slot}, '{spotType}', '{group.name}', {group.groupNumber}, {group.eventId}, {time.time()})
                         """)
             self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in write_spot_leaving: {e}")
+            raise e
         finally:
             self.db_lock.release()
 
@@ -59,12 +71,108 @@ class Database:
         try:
             self.db_lock.acquire(True)
             self.cursor.execute(f"""
-                    SELECT * FROM admins WHERE admins.groupId = {groupid}
+                    SELECT isadmin FROM groups WHERE groupId = {groupid}
             """)
-            result = self.cursor.fetchall()
-            if result:
-                return True
-            else:
-                return False
+            result = self.cursor.fetchone()
+            return result[0] if result else False
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in check_admin: {e}")
+            raise e
         finally:
             self.db_lock.release()
+
+    def get_all_groups(self):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute("SELECT groupId, groupName, groupNumber, eventID, members, username, isadmin FROM groups ORDER BY groupNumber ASC")
+            output = self.cursor.fetchall()
+            self.db.commit()
+            return output
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in get_all_groups: {e}")
+            raise e
+        finally:
+            self.db_lock.release()
+
+    def update_group(self, groupId, name, number, password=None, members=None, username=None, is_admin=None):
+        try:
+            self.db_lock.acquire(True)
+            # Construct the update query dynamically
+            query = f"UPDATE groups SET groupName = '{name}', groupNumber = {number}"
+            if username:
+                 query += f", username = '{username}'"
+            if password:
+                query += f", password = '{password}'"
+            if members is not None:
+                query += f", members = '{members}'"
+            
+            if is_admin is not None:
+                val = 1 if is_admin else 0
+                query += f", isadmin = {val}"
+            
+            query += f" WHERE groupId = {groupId}"
+            
+            print(f"DEBUG: update_group Query: {query}")
+            self.cursor.execute(query)
+
+            # Sync admins table
+            if is_admin is not None:
+                if is_admin:
+                    self.cursor.execute(f"SELECT 1 FROM admins WHERE groupId = {groupId}")
+                    if not self.cursor.fetchone():
+                         self.cursor.execute(f"INSERT INTO admins (groupId) VALUES ({groupId})")
+                else:
+                    self.cursor.execute(f"DELETE FROM admins WHERE groupId = {groupId}")
+
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in update_group: {e}")
+            raise e
+        finally:
+            self.db_lock.release()
+
+    def create_group(self, name, number, eventId, password=None, members=None, username=None, is_admin=False):
+        try:
+            self.db_lock.acquire(True)
+            if members is None:
+                members = ""
+            if password is None:
+                password = ""
+            if username is None:
+                username = name.replace(" ", "").lower() # Default username derived from name
+            
+            val = 1 if is_admin else 0
+            self.cursor.execute(f"INSERT INTO groups (groupName, groupNumber, eventID, password, members, username, isadmin) VALUES ('{name}', {number}, {eventId}, '{password}', '{members}', '{username}', {val}) RETURNING groupId")
+            new_id = self.cursor.fetchone()[0]
+            
+            # Sync admins table
+            if is_admin:
+                self.cursor.execute(f"INSERT INTO admins (groupId) VALUES ({new_id})")
+
+            self.db.commit()
+            return new_id
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in create_group: {e}")
+            raise e
+        finally:
+            self.db_lock.release()
+
+    def delete_group(self, groupId):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"DELETE FROM groups WHERE groupId = {groupId}")
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in delete_group: {e}")
+            return False
+        finally:
+            self.db_lock.release()
+            
+    def remove_from_station_log(self, groupId, spotType, slot):
+        pass
