@@ -14,13 +14,13 @@ def dump_users():
         cur = conn.cursor()
         
         # Select all relevant columns
-        cur.execute("SELECT groupId, groupName, username, password FROM groups")
+        cur.execute("SELECT groupId, groupName, username, password, members FROM groups")
         rows = cur.fetchall()
         
-        print(f"{'ID':<5} | {'GroupName':<20} | {'Username':<20} | {'Password':<20}")
-        print("-" * 90)
+        print(f"{'ID':<5} | {'GroupName':<20} | {'Username':<20} | {'Password':<20} | {'Members':<20}")
+        print("-" * 115)
         for row in rows:
-            print(f"{str(row[0]):<5} | {str(row[1]):<20} | {str(row[2]):<20} | {str(row[3]):<20}")
+            print(f"{str(row[0]):<5} | {str(row[1]):<20} | {str(row[2]):<20} | {str(row[3]):<20} | {str(row[4]):<20}")
             
         cur.close()
         conn.close()

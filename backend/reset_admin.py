@@ -16,10 +16,15 @@ def reset_admin():
         print("Resetting Admin credentials to admin/admin...")
         
         # Update ID 1 (Administrator)
-        cur.execute("UPDATE groups SET groupName = 'admin', password = 'admin' WHERE groupId = 1")
-        conn.commit()
+        cur.execute("UPDATE groups SET groupName = 'admin', password = 'admin', isAdmin = 1 WHERE groupId = 1")
         
-        print("Done. ID 1 is now groupName='admin', password='admin'.")
+        # Ensure it's also in admins table if not there
+        cur.execute("SELECT 1 FROM admins WHERE groupId = 1")
+        if not cur.fetchone():
+             cur.execute("INSERT INTO admins (groupId) VALUES (1)")
+             
+        conn.commit()
+        print("Done. ID 1 is now groupName='admin', password='admin', isAdmin=1.")
             
         cur.close()
         conn.close()
