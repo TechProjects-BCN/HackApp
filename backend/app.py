@@ -17,13 +17,16 @@ countdown_info = {
     "current_event": "Networking",
     "next_event": "Hackathon Start",
     "target_epoch": 1745943020,
-    "youtube_id": "xX4mBbJjdYM"
+    "youtube_id": "xX4mBbJjdYM",
+    "station_duration": 10 # minutes
 }
 
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
 assistance_queue = []
+assistance_queue = []
 assistance_active = []
+DEFAULT_LANGUAGE = "en"
 
 cutter_stations = [0 for _ in range(CUTTER_STATIONS)]
 cutter_stations_epochs = [None for _ in range(CUTTER_STATIONS)]
@@ -44,13 +47,15 @@ def updater():
     # Check if there's spot in the stations and if there's someone waiting on the queue
     if 0 in cutter_stations and len(cutter_queue) > 0:
         empty_slot = cutter_stations.index(0)
-        cutter_stations_epochs[empty_slot] = time.time() + STATION_TIME
+        station_time = countdown_info.get("station_duration", 10) * 60 + ACCEPT_TIME
+        cutter_stations_epochs[empty_slot] = time.time() + station_time
         spot_cutter.append(GroupToBeAccepted(cutter_queue.pop(0), False, time.time() + ACCEPT_TIME, empty_slot))
         cutter_stations[empty_slot] = 3
 
     if 0 in hotglue_stations and len(hot_glue_queue) > 0:
         empty_slot = hotglue_stations.index(0)
-        hot_glue_stations_epochs[empty_slot] = time.time() + STATION_TIME
+        station_time = countdown_info.get("station_duration", 10) * 60 + ACCEPT_TIME
+        hot_glue_stations_epochs[empty_slot] = time.time() + station_time
         spot_hotglue.append(GroupToBeAccepted(hot_glue_queue.pop(0), False, time.time() + ACCEPT_TIME, empty_slot))
         hotglue_stations[empty_slot] = 3
     
@@ -90,6 +95,27 @@ def updater():
             
     for group in to_remove:
         spot_hotglue.pop(spot_hotglue.index(group))
+
+    # Check for expired active sessions (Auto-Kick)
+    for i, epoch in enumerate(cutter_stations_epochs):
+        if epoch is not None and time.time() > epoch:
+            # Check if station is actually occupied by a group (not 0=Free, 2=Disabled, 3=Reserved)
+            if cutter_stations[i] not in [0, 2, 3]:
+                # Time is up for this group
+                group_obj = cutter_stations[i]
+                print(f"Auto-kicking Group {group_obj.groupId} from Cutter Station {i+1}")
+                database.write_spot_leaving(group=group_obj, spotType="cutter", slot=i)
+                cutter_stations[i] = 0
+                cutter_stations_epochs[i] = None
+
+    for i, epoch in enumerate(hot_glue_stations_epochs):
+        if epoch is not None and time.time() > epoch:
+            if hotglue_stations[i] not in [0, 2, 3]:
+                group_obj = hotglue_stations[i]
+                print(f"Auto-kicking Group {group_obj.groupId} from Hot Glue Station {i+1}")
+                database.write_spot_leaving(group=group_obj, spotType="hotglue", slot=i)
+                hotglue_stations[i] = 0
+                hot_glue_stations_epochs[i] = None
 
     app.logger.info(f"Queues: Cutter: {cutter_queue}  Hot Glue: {hot_glue_queue} Stations: Cutter: {cutter_stations}  Hot Glue: {hotglue_stations} To Be Accepted:  Hot Glue: {spot_hotglue}  Cutter: {spot_cutter}")
 
@@ -212,8 +238,20 @@ def info():
         return Response({"Not Authorized": ""}, status=401)  
     group_info = getGroup(session["groupId"])
     isAdmin = database.check_admin(session["groupId"])
-    in_assistance_queue = group_info in assistance_queue
-    return {"name": group_info.name, "groupNumber": group_info.groupNumber, "isAdmin": isAdmin, "username": group_info.username, "members": group_info.members, "inAssistanceQueue": in_assistance_queue}
+    
+    # Check queue status (queue is now list of dicts)
+    in_assistance_queue = any(g['group'].groupId == group_info.groupId for g in assistance_queue)
+    in_assistance_active = any(g['group'].groupId == group_info.groupId for g in assistance_active)
+    
+    return {
+        "name": group_info.name, 
+        "groupNumber": group_info.groupNumber, 
+        "isAdmin": isAdmin, 
+        "username": group_info.username, 
+        "members": group_info.members, 
+        "inAssistanceQueue": in_assistance_queue,
+        "inAssistanceActive": in_assistance_active
+    }
 
 @app.route("/joinqueue", methods=["POST"])
 def joinqueue():
@@ -239,9 +277,9 @@ def giveup():
 def queue():
     return {"cutter_queue": [group.groupNumber for group in cutter_queue],
             "hot_glue_queue": [group.groupNumber for group in hot_glue_queue],
-            "cutter_stations": [group.groupNumber if hasattr(group, 'groupNumber') else group for group in cutter_stations],
-            "hot_glue_stations": [group.groupNumber if hasattr(group, 'groupNumber') else group for group in hotglue_stations],
-            "assistance_queue": [group.groupNumber for group in assistance_queue] 
+            "cutter_stations": [{"name": group.name, "number": group.groupNumber} if hasattr(group, 'groupNumber') else group for group in cutter_stations],
+            "hot_glue_stations": [{"name": group.name, "number": group.groupNumber} if hasattr(group, 'groupNumber') else group for group in hotglue_stations],
+            "assistance_queue": [g['group'].groupNumber for g in assistance_queue] 
             }, 200
 
 # Assistance Queue Endpoints
@@ -249,9 +287,15 @@ def queue():
 @app.route("/queue/assistance", methods=["GET"])
 def get_assistance_queue():
     # Return full group info for admin
+    # Wrap in dict to include message
+    def format_item(item):
+        d = asdict(item['group'])
+        d['message'] = item['message']
+        return d
+
     return {
-        "queue": [asdict(group) for group in assistance_queue],
-        "active": [asdict(group) for group in assistance_active]
+        "queue": [format_item(item) for item in assistance_queue],
+        "active": [format_item(item) for item in assistance_active]
     }, 200
 
 @app.route("/queue/assistance/join", methods=["POST"])
@@ -261,10 +305,14 @@ def join_assistance_queue():
          return Response({"Not Authorized": ""}, status=401)
     
     group_info = getGroup(session["groupId"])
+    message = request.json.get("message", "")
     
     # Check if already in queue (by ID)
-    if not any(g.groupId == group_info.groupId for g in assistance_queue):
-        assistance_queue.append(group_info)
+    if not any(g['group'].groupId == group_info.groupId for g in assistance_queue) and not any(g['group'].groupId == group_info.groupId for g in assistance_active):
+        assistance_queue.append({
+            "group": group_info,
+            "message": message
+        })
         return {"status": "Joined"}, 200
     return {"status": "Already in queue"}, 400
 
@@ -274,12 +322,33 @@ def pop_assistance_queue():
     if not valid:
         return Response({"Not Authorized": ""}, status=401)
         
-    if len(assistance_queue) > 0:
+    group_id = request.json.get("groupId") if request.json else None
+    
+    removed = None
+    if group_id:
+        # Find specific group
+        for idx, item in enumerate(assistance_queue):
+            if item['group'].groupId == group_id:
+                removed = assistance_queue.pop(idx)
+                break
+        if not removed:
+             return {"error": "Group not found in queue"}, 404
+             
+    elif len(assistance_queue) > 0:
         removed = assistance_queue.pop(0)
+    else:
+        return {"status": "Queue empty"}, 200
+
+    if removed:
         # Move to active list if not already there (sanity check)
-        if not any(g.groupId == removed.groupId for g in assistance_active):
+        if not any(g['group'].groupId == removed['group'].groupId for g in assistance_active):
              assistance_active.append(removed)
-        return {"status": "Popped", "group": asdict(removed)}, 200
+             
+        # Format response
+        d = asdict(removed['group'])
+        d['message'] = removed['message']
+        return {"status": "Popped", "group": d}, 200
+        
     return {"status": "Queue empty"}, 200
 
 @app.route("/queue/assistance/finish", methods=["POST"])
@@ -292,14 +361,14 @@ def finish_assistance():
     if not group_id:
         return {"error": "Missing groupId"}, 400
         
-    target_group = None
-    for g in assistance_active:
-        if g.groupId == group_id:
-            target_group = g
+    target_item = None
+    for item in assistance_active:
+        if item['group'].groupId == group_id:
+            target_item = item
             break
             
-    if target_group:
-        assistance_active.remove(target_group)
+    if target_item:
+        assistance_active.remove(target_item)
         return {"status": "Finished"}, 200
         
     return {"error": "Group not found in active list"}, 404
@@ -314,9 +383,9 @@ def cancel_assistance():
     
     # Remove from queue if present
     target_in_queue = None
-    for g in assistance_queue:
-        if g.groupId == group_info.groupId:
-            target_in_queue = g
+    for item in assistance_queue:
+        if item['group'].groupId == group_info.groupId:
+            target_in_queue = item
             break
             
     if target_in_queue:
@@ -335,14 +404,14 @@ def remove_assistance_queue():
     if not group_id:
         return {"error": "Missing groupId"}, 400
         
-    target_group = None
-    for g in assistance_queue:
-        if g.groupId == group_id:
-            target_group = g
+    target_item = None
+    for item in assistance_queue:
+        if item['group'].groupId == group_id:
+            target_item = item
             break
             
-    if target_group:
-        assistance_queue.remove(target_group)
+    if target_item:
+        assistance_queue.remove(target_item)
         return {"status": "Removed"}, 200
         
     return {"error": "Group not found in queue"}, 404
@@ -364,10 +433,18 @@ def status():
         return Response({"Not Authorized": ""}, status=401)  
     response = {}
     group_info = getGroup(groupId=session["groupId"])
+    avg_cutter_time = database.get_avg_station_time("cutter")
+    if avg_cutter_time == 0: avg_cutter_time = STATION_TIME # Default to station limit if no data
+    
+    avg_glue_time = database.get_avg_station_time("hotglue")
+    if avg_glue_time == 0: avg_glue_time = STATION_TIME
+
     if group_info in cutter_queue:
         queue_info = {}
         queue_info["position"] = cutter_queue.index(group_info)
-        queue_info["ETA"] = -1
+        # ETA = (Pos + 1) * AvgTime / NumStations
+        eta_seconds = (queue_info["position"] + 1) * avg_cutter_time / CUTTER_STATIONS
+        queue_info["ETA"] = round(eta_seconds / 60) # Minutes
         response["cutterQueue"] = queue_info
         
     elif group_info in cutter_stations:
@@ -387,7 +464,8 @@ def status():
     if group_info in hot_glue_queue:
         queue_info = {}
         queue_info["position"] = hot_glue_queue.index(group_info)
-        queue_info["ETA"] = -1
+        eta_seconds = (queue_info["position"] + 1) * avg_glue_time / HOT_GLUE_STATIONS
+        queue_info["ETA"] = round(eta_seconds / 60)
         response["hotglueQueue"] = queue_info
         
     elif group_info in hotglue_stations:
@@ -499,8 +577,30 @@ def admin_config():
 
     if "youtube_id" in data:
         countdown_info["youtube_id"] = data["youtube_id"]
+
+    if "station_duration" in data:
+        try:
+            countdown_info["station_duration"] = int(data["station_duration"])
+        except:
+            pass
             
     return {"status": "Config Updated"}, 200
+
+@app.route("/admin/config/language", methods=["GET", "POST"])
+def admin_config_language():
+    global DEFAULT_LANGUAGE
+    if request.method == "GET":
+        return {"language": DEFAULT_LANGUAGE}, 200
+    
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    data = request.json
+    if "language" in data:
+        DEFAULT_LANGUAGE = data["language"]
+        return {"status": "Updated", "language": DEFAULT_LANGUAGE}, 200
+    return {"error": "Missing language"}, 400
 
 @app.route("/admin/station/clear", methods=["POST"])
 def admin_clear_station():

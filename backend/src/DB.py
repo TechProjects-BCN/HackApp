@@ -176,3 +176,30 @@ class Database:
             
     def remove_from_station_log(self, groupId, spotType, slot):
         pass
+
+    def get_avg_station_time(self, spotType):
+        try:
+            self.db_lock.acquire(True)
+            # Calculate average duration (LeftTime - AcceptedTime) for the last 20 sessions
+            self.cursor.execute(f"""
+                SELECT AVG(recent_sessions.duration)
+                FROM (
+                    SELECT (spots.LeftTime - accepted.AcceptedTime) as duration
+                    FROM spots
+                    JOIN accepted ON spots.acceptedId = accepted.requestid
+                    WHERE spots.spotType = '{spotType}'
+                    AND spots.LeftTime IS NOT NULL
+                    ORDER BY spots.LeftTime DESC
+                    LIMIT 20
+                ) as recent_sessions;
+            """)
+            result = self.cursor.fetchone()
+            if result and result[0] is not None:
+                return float(result[0])
+            return 0
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in get_avg_station_time: {e}")
+            return 0
+        finally:
+            self.db_lock.release()

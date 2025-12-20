@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   description: "Application for Running Hackathons",
 };
 
+import { Providers } from "./providers";
+
+// ... existing imports ...
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,7 +32,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

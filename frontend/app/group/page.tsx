@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { getBackendUrl } from "../utils/config";
+import { useLanguage } from "../context/LanguageContext";
+import LanguageSelector from "../components/LanguageSelector";
 
 export default function Group() {
     const router = useRouter();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,52 +46,35 @@ export default function Group() {
 
     const membersList = data.members ? data.members.split(',').map((m: string) => m.trim()).filter((m: string) => m) : [];
 
-    const requestAssistance = async () => {
-        try {
-            const res = await fetch(`${getBackendUrl()}/queue/assistance/join`, {
-                method: "POST",
-                credentials: "include"
-            });
-            if (res.ok) {
-                // Refresh data
-                const infoRes = await fetch(`${getBackendUrl()}/info`, { credentials: "include" });
-                if (infoRes.ok) setData(await infoRes.json());
-            } else {
-                alert("Failed to join assistance queue");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Error joining queue");
-        }
-    };
+
 
     return (
         <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-4xl font-bold text-white">
-                        Group Settings
+                        {t('groupInfo')}
                     </h1>
                     <p className="text-slate-400">
-                        Manage your team
+                        {t('manageTeam')}
                     </p>
                 </div>
 
                 <div className="glass-card p-8 space-y-6">
                     <div className="space-y-4">
                         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Group Name</label>
+                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">{t('groupName')}</label>
                             <div className="text-xl text-white font-medium">{data.name}</div>
                             <div className="text-sm text-slate-400">Group #{data.groupNumber}</div>
                         </div>
 
                         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Username</label>
+                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">{t('username')}</label>
                             <div className="text-lg text-white font-mono">{data.username || "N/A"}</div>
                         </div>
 
                         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">Members</label>
+                            <label className="block text-xs uppercase text-slate-500 font-bold mb-1">{t('members')}</label>
                             <div className="text-base text-slate-300">
                                 {membersList.length > 0 ? (
                                     <ul className="list-disc list-inside space-y-1">
@@ -97,24 +83,20 @@ export default function Group() {
                                         ))}
                                     </ul>
                                 ) : (
-                                    <span className="italic text-slate-500">No members listed</span>
+                                    <span className="italic text-slate-500">{t('noMembers')}</span>
                                 )}
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                            <label className="block text-xs uppercase text-slate-500 font-bold mb-2">{t('settings')}</label>
+                            <div className="bg-black/20 rounded-lg p-3">
+                                <LanguageSelector />
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t border-white/10">
-                        <button
-                            onClick={requestAssistance}
-                            disabled={data.inAssistanceQueue}
-                            className={`w-full py-3 px-4 rounded-xl font-bold transition-all ${data.inAssistanceQueue
-                                    ? "bg-yellow-500/20 text-yellow-400 cursor-not-allowed border border-yellow-500/20"
-                                    : "bg-gradient-to-r from-yellow-500 to-amber-500 text-black hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-yellow-500/20"
-                                }`}
-                        >
-                            {data.inAssistanceQueue ? "Wait for Assistance..." : "Request Materials / Assistance"}
-                        </button>
-                    </div>
+
                 </div>
 
                 <button
@@ -122,7 +104,7 @@ export default function Group() {
                     onClick={() => router.back()}
                     className="btn-secondary w-full"
                 >
-                    Go Back
+                    {t('goBack')}
                 </button>
             </div>
         </div>

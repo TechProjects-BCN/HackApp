@@ -14,7 +14,9 @@ export default function Admin() {
     event: "Hackathon Start",
     current_event: "Networking",
     target_epoch: 1745943020,
-    youtube_id: "xX4mBbJjdYM"
+    youtube_id: "xX4mBbJjdYM",
+    station_duration: 10,
+    default_language: "en"
   });
 
   const [cut, setCut] = useState<any[]>([]);
@@ -55,14 +57,24 @@ export default function Admin() {
         event: data.next_event || data.event, // handle legacy or new
         current_event: data.current_event || "Networking",
         target_epoch: data.target_epoch,
-        youtube_id: data.youtube_id || prev.youtube_id
+        youtube_id: data.youtube_id || prev.youtube_id,
+        station_duration: data.station_duration || 10
       }));
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchDefaultLanguage = async () => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/config/language`);
+      const data = await res.json();
+      setConfig(prev => ({ ...prev, default_language: data.language }));
     } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
     fetchUsers();
     fetchCountdown();
+    fetchDefaultLanguage();
     const interval = setInterval(fetchStatus, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -78,7 +90,8 @@ export default function Admin() {
         next_event: config.event,
         current_event: config.current_event,
         target_epoch: config.target_epoch,
-        youtube_id: config.youtube_id
+        youtube_id: config.youtube_id,
+        station_duration: config.station_duration
       }),
       credentials: "include"
     });
@@ -99,6 +112,17 @@ export default function Admin() {
     alert("Station counts updated and reset!");
     window.location.reload();
   };
+
+  const updateDefaultLanguage = async (newLang: string) => {
+    await fetch(`${getBackendUrl()}/admin/config/language`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: newLang }),
+      credentials: "include"
+    });
+    setConfig({ ...config, default_language: newLang });
+    alert(`Default language updated to ${newLang.toUpperCase()}`);
+  }
 
   const toggleStation = async (type: string, index: number) => {
     await fetch(`${getBackendUrl()}/admin/station/toggle_disable`, {
@@ -295,11 +319,17 @@ export default function Admin() {
         >
           User Management
         </button>
+        <button
+          onClick={() => setActiveTab("system")}
+          className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${activeTab === "system" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
+        >
+          System Settings
+        </button>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 p-8 overflow-y-auto">
-        {activeTab === "stations" ? (
+        {activeTab === "stations" && (
           <div className="space-y-8 max-w-4xl">
             {/* Config Sections */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -385,6 +415,25 @@ export default function Admin() {
                   </button>
                 </div>
               </div>
+
+              {/* Queue Settings */}
+              <div className="glass-card p-6 space-y-4 md:col-span-2">
+                <h2 className="text-xl font-bold text-white">Queue Settings</h2>
+                <div className="md:w-1/2 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-slate-400">Station Duration (Minutes)</label>
+                    <p className="text-xs text-slate-500">How long each group gets at a station. Applies to new sessions.</p>
+                    <input
+                      type="number"
+                      value={config.station_duration}
+                      onChange={(e) => setConfig({ ...config, station_duration: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
+                      min="1"
+                    />
+                  </div>
+                  <button onClick={updateEventConfig} className="btn-primary w-full py-2 text-sm">Update Queue Settings</button>
+                </div>
+              </div>
             </div>
 
             {/* Stations Grid */}
@@ -462,7 +511,9 @@ export default function Admin() {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === "users" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-white">User Management</h2>
@@ -510,6 +561,33 @@ export default function Admin() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "system" && (
+          <div className="space-y-8 max-w-4xl">
+            <h2 className="text-xl font-bold text-white">System Configuration</h2>
+
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="text-lg font-bold text-white">Default Language</h3>
+              <p className="text-sm text-slate-400">
+                This language will be used for new users who haven't selected a preference yet.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {['en', 'es', 'ca', 'it', 'ko', 'zh', 'ja'].map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => updateDefaultLanguage(lang)}
+                    className={`py-3 px-4 rounded-xl border font-bold transition-all ${config.default_language === lang
+                      ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                      : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
+                      }`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

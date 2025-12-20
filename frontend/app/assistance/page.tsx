@@ -50,9 +50,14 @@ export default function AssistanceQueue() {
         return () => clearInterval(interval);
     }, [isAdmin]);
 
-    const popQueue = async () => {
+    const popQueue = async (groupId?: number) => {
         try {
-            await fetch(`${getBackendUrl()}/queue/assistance/pop`, { method: "POST", credentials: "include" });
+            await fetch(`${getBackendUrl()}/queue/assistance/pop`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ groupId }),
+                credentials: "include"
+            });
             fetchQueue();
         } catch (e) {
             console.error(e);
@@ -131,13 +136,18 @@ export default function AssistanceQueue() {
                                     <div>
                                         <div className="font-bold text-white text-lg">{group.name}</div>
                                         <div className="text-xs text-green-300 font-bold">Group #{group.groupNumber}</div>
+                                        {group.message && (
+                                            <div className="text-xs text-yellow-500/80 mt-1 italic">"{group.message}"</div>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => finishGroup(group.groupId)}
-                                        className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-bold rounded-lg text-sm transition-colors"
-                                    >
-                                        Finish
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => finishGroup(group.groupId)}
+                                            className="px-4 py-2 bg-green-500 hover:bg-green-400 text-black font-bold rounded-lg text-sm transition-colors"
+                                        >
+                                            Finish
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -154,9 +164,15 @@ export default function AssistanceQueue() {
                                 <div className="text-6xl font-black text-white">{currentGroup.groupNumber}</div>
                                 <div className="text-3xl font-bold text-yellow-400">{currentGroup.name}</div>
                                 <div className="text-slate-400">{currentGroup.members || "No members listed"}</div>
+                                {currentGroup.message && (
+                                    <div className="bg-white/5 border border-white/10 p-3 rounded-lg max-w-sm mx-auto">
+                                        <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Message</div>
+                                        <div className="text-white italic">"{currentGroup.message}"</div>
+                                    </div>
+                                )}
 
                                 <button
-                                    onClick={popQueue}
+                                    onClick={() => popQueue()}
                                     className="mt-8 px-12 py-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl text-2xl font-bold shadow-lg shadow-green-500/20 hover:scale-105 active:scale-95 transition-all w-full"
                                 >
                                     CALL NEXT
@@ -181,10 +197,19 @@ export default function AssistanceQueue() {
                                         <div>
                                             <div className="font-bold text-white leading-tight">{group.name}</div>
                                             <div className="text-xs text-slate-400">Group #{group.groupNumber}</div>
+                                            {group.message && (
+                                                <div className="text-xs text-slate-500 mt-1 italic line-clamp-1">"{group.message}"</div>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => popQueue(group.groupId)}
+                                            className="text-xs font-bold text-green-400 px-3 py-1 bg-green-500/10 rounded hover:bg-green-500/20 mr-2"
+                                        >
+                                            CALL
+                                        </button>
                                         <button
                                             onClick={() => removeGroup(group.groupId)}
                                             className="text-xs font-bold text-red-500 px-3 py-1 bg-red-500/10 rounded hover:bg-red-500/20"

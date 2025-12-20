@@ -37,3 +37,22 @@ body {
         @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400;
     }
 }
+
+@keyframes flash-red {
+
+    0%,
+    100% {
+        background-color: #450a0a;
+    }
+
+    /* red-950 */
+    50% {
+        background-color: #991b1b;
+    }
+
+    /* red-800 - darker/chill */
+}
+
+.animate-flash-red {
+    animation: flash-red 3s ease-in-out infinite;
+}

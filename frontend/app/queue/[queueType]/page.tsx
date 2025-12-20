@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from "react";
 import { useParams } from 'next/navigation';
 import { getBackendUrl } from "../../utils/config";
+import { useLanguage } from '../../context/LanguageContext';
 
 
 export default function Queue() {
     const router = useRouter();
     var [groups_in_front, setGroupsInFront] = useState(0);
     var [estimated_time_remaining, setEstimatedTimeRemaining] = useState(0);
+    const { t } = useLanguage();
     const params = useParams(); // Gets dynamic params from the URL
     const queueType = params.queueType;
     const leaveQueue = async (queueType: any) => {
@@ -57,11 +59,11 @@ export default function Queue() {
     }, [groups_in_front]);
 
     const queue_propieties = {
-        "queueName": "Hot Glue",
+        "queueName": t('hotglue'),
         "queueIdName": queueType
     }
     if (queueType == "cutter") {
-        queue_propieties["queueName"] = "Box Cutter";
+        queue_propieties["queueName"] = t('cutter');
     }
     return (
 
@@ -69,20 +71,20 @@ export default function Queue() {
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
-                        {queue_propieties["queueName"]} Queue
+                        {queue_propieties["queueName"]}
                     </h1>
                     <div className="flex items-center justify-center gap-2 text-slate-400">
                         <span className="relative flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
                         </span>
-                        Live Status
+                        {t('liveStatus')}
                     </div>
                 </div>
 
                 <div className="glass-card p-8 space-y-6 text-center">
                     <div className="space-y-1">
-                        <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Groups Ahead</div>
+                        <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">{t('groupsAhead')}</div>
                         <div className="text-6xl font-bold text-white tracking-tighter">
                             {groups_in_front}
                         </div>
@@ -91,9 +93,9 @@ export default function Queue() {
                     <div className="h-px bg-white/10 w-full" />
 
                     <div className="space-y-1">
-                        <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Est. Wait Time</div>
+                        <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">{t('estWaitTime')}</div>
                         <div className="text-2xl font-bold text-blue-400">
-                            ~{estimated_time_remaining} min
+                            ~{estimated_time_remaining} {t('min')}
                         </div>
                     </div>
                 </div>
@@ -103,7 +105,7 @@ export default function Queue() {
                     onClick={() => leaveQueue(queueType)}
                     className="btn-danger w-full"
                 >
-                    Leave Queue
+                    {t('leaveQueue')}
                 </button>
             </div>
         </div>

@@ -5,10 +5,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { getBackendUrl } from "../../utils/config";
+import { useLanguage } from "../../context/LanguageContext";
 
 
 export default function Spot() {
     const router = useRouter();
+    const { t } = useLanguage();
     const params = useParams(); // Gets dynamic params from the URL
     const spotType = params.spotType;
     const TimeNow = Math.floor(Date.now() / 1000);
@@ -16,11 +18,11 @@ export default function Spot() {
     const [timeLeft, setTimeLeft] = useState(60 * 10 + 30);
     const [spotNumber, setSpotNumber] = useState("-");
     const spot_propietes = {
-        "spotName": "Hot Glue",
+        "spotName": t('hotglue'),
         "spotIdName": spotType
     };
     if (spotType == "cutter") {
-        spot_propietes["spotName"] = "Box Cutter";
+        spot_propietes["spotName"] = t('cutter');
     }
     const LeaveSpot = async (spotType: any) => {
         await fetch(`${getBackendUrl()}/leavespot`, {
@@ -62,21 +64,35 @@ export default function Spot() {
             }
         }, 1000);
 
-        return () => clearInterval(interval);
+        // Separate timer for local countdown
+        const timerInterval = setInterval(() => {
+            const left = targetEpoch - Math.floor(Date.now() / 1000);
+            setTimeLeft(left);
+
+            if (left <= 0) {
+                // Time is up! Kick them out.
+                LeaveSpot(spot_propietes["spotIdName"]);
+            }
+        }, 1000);
+
+        return () => {
+            clearInterval(interval);
+            clearInterval(timerInterval);
+        };
     }, [targetEpoch]);
 
     const secs = Math.floor(timeLeft % 60);
     const minutes = Math.floor((timeLeft % 3600) / 60);
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-blue-900 via-slate-900 to-black">
+        <div className={`min-h-screen flex items-center justify-center p-6 transition-colors duration-1000 ${timeLeft < 60 ? "animate-flash-red" : "bg-gradient-to-br from-blue-900 via-slate-900 to-black"}`}>
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-3xl font-bold text-white">
-                        In Progress
+                        {t('inProgress')}
                     </h1>
                     <p className="text-blue-200/80">
-                        Using {spot_propietes["spotName"]}
+                        {t('using')} {spot_propietes["spotName"]}
                     </p>
                 </div>
 
@@ -87,7 +103,7 @@ export default function Spot() {
 
                     <div className="space-y-6">
                         <div>
-                            <div className="text-sm text-blue-300 uppercase tracking-wider font-semibold">Current Station</div>
+                            <div className="text-sm text-blue-300 uppercase tracking-wider font-semibold">{t('currentStation')}</div>
                             <div className="text-5xl font-bold text-white mt-1">
                                 #{spotNumber}
                             </div>
@@ -96,7 +112,7 @@ export default function Spot() {
                         <div className="h-px bg-white/5 w-full" />
 
                         <div>
-                            <div className="text-sm text-blue-300 uppercase tracking-wider font-semibold">Time Remaining</div>
+                            <div className="text-sm text-blue-300 uppercase tracking-wider font-semibold">{t('timeRemaining')}</div>
                             <div className="text-3xl font-mono font-bold text-blue-400 mt-1">
                                 {minutes}:{secs < 10 ? `0${secs}` : secs}
                             </div>
@@ -109,7 +125,7 @@ export default function Spot() {
                     onClick={() => LeaveSpot(spot_propietes["spotIdName"])}
                     className="btn-danger w-full"
                 >
-                    Finish & Leave Station
+                    {t('finishLeave')}
                 </button>
             </div>
         </div>
