@@ -62,6 +62,12 @@ export default function Index() {
                   Admin Dashboard
                 </button>
               </div>
+              <button
+                onClick={() => router.push("/assistance")}
+                className="w-full btn-secondary py-2 text-xs font-bold rounded-lg bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20"
+              >
+                Assistance Queue
+              </button>
             </div>
           )}
 

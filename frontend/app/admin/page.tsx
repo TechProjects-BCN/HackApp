@@ -58,7 +58,7 @@ export default function Admin() {
         youtube_id: data.youtube_id || prev.youtube_id
       }));
     } catch (e) { console.error(e); }
-  }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -464,57 +464,54 @@ export default function Admin() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-white">User Management</h2>
-                <button onClick={startCreate} className="btn-primary py-2 px-4 text-sm">
-                  + Create New Group
-                </button>
-              </div>
-              <div className="glass-card overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-white/5 text-slate-400 uppercase text-xs">
-                    <tr>
-                      <th className="p-4">ID</th>
-                      <th className="p-4">Group Name</th>
-                      <th className="p-4">Username</th>
-                      <th className="p-4">Role</th>
-                      <th className="p-4">Group #</th>
-                      <th className="p-4">Actions</th>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">User Management</h2>
+              <button onClick={startCreate} className="btn-primary py-2 px-4 text-sm">
+                + Create New Group
+              </button>
+            </div>
+            <div className="glass-card overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-white/5 text-slate-400 uppercase text-xs">
+                  <tr>
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Group Name</th>
+                    <th className="p-4">Username</th>
+                    <th className="p-4">Role</th>
+                    <th className="p-4">Group #</th>
+                    <th className="p-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {users.map(user => (
+                    <tr key={user.groupId} className="hover:bg-white/5">
+                      <td className="p-4 font-mono text-slate-500">{user.groupId}</td>
+                      <td className="p-4 font-bold text-white">{user.name}</td>
+                      <td className="p-4 text-slate-300">{user.username}</td>
+                      <td className="p-4">
+                        {user.isAdmin ? (
+                          <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs font-bold border border-purple-500/20">
+                            ADMIN
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 text-xs">User</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-slate-300">{user.number}</td>
+                      <td className="p-4 flex gap-3">
+                        <button onClick={() => startEdit(user)} className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                          Edit
+                        </button>
+                        <button onClick={() => handleDeleteUser(user)} className="text-red-400 hover:text-red-300 text-sm font-medium">
+                          Delete
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {users.map(user => (
-                      <tr key={user.groupId} className="hover:bg-white/5">
-                        <td className="p-4 font-mono text-slate-500">{user.groupId}</td>
-                        <td className="p-4 font-bold text-white">{user.name}</td>
-                        <td className="p-4 text-slate-300">{user.username}</td>
-                        <td className="p-4">
-                          {user.isAdmin ? (
-                            <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs font-bold border border-purple-500/20">
-                              ADMIN
-                            </span>
-                          ) : (
-                            <span className="text-slate-500 text-xs">User</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-slate-300">{user.number}</td>
-                        <td className="p-4 flex gap-3">
-                          <button onClick={() => startEdit(user)} className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-                            Edit
-                          </button>
-                          <button onClick={() => handleDeleteUser(user)} className="text-red-400 hover:text-red-300 text-sm font-medium">
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-
         )}
       </div >
     </div >

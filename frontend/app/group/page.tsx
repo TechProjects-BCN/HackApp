@@ -43,6 +43,25 @@ export default function Group() {
 
     const membersList = data.members ? data.members.split(',').map((m: string) => m.trim()).filter((m: string) => m) : [];
 
+    const requestAssistance = async () => {
+        try {
+            const res = await fetch(`${getBackendUrl()}/queue/assistance/join`, {
+                method: "POST",
+                credentials: "include"
+            });
+            if (res.ok) {
+                // Refresh data
+                const infoRes = await fetch(`${getBackendUrl()}/info`, { credentials: "include" });
+                if (infoRes.ok) setData(await infoRes.json());
+            } else {
+                alert("Failed to join assistance queue");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error joining queue");
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
             <div className="w-full max-w-md space-y-8">
@@ -82,6 +101,19 @@ export default function Group() {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/10">
+                        <button
+                            onClick={requestAssistance}
+                            disabled={data.inAssistanceQueue}
+                            className={`w-full py-3 px-4 rounded-xl font-bold transition-all ${data.inAssistanceQueue
+                                    ? "bg-yellow-500/20 text-yellow-400 cursor-not-allowed border border-yellow-500/20"
+                                    : "bg-gradient-to-r from-yellow-500 to-amber-500 text-black hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-yellow-500/20"
+                                }`}
+                        >
+                            {data.inAssistanceQueue ? "Wait for Assistance..." : "Request Materials / Assistance"}
+                        </button>
                     </div>
                 </div>
 

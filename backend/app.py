@@ -7,6 +7,7 @@ import os
 import time
 from flask_cors import CORS
 from src import *
+from dataclasses import asdict
 
 HOT_GLUE_STATIONS = 5
 CUTTER_STATIONS = 4
@@ -20,6 +21,9 @@ countdown_info = {
 }
 
 cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
+cutter_queue, hot_glue_queue, hot_glue_stations_epochs, spot_hotglue, spot_cutter, failed_attempts = [], [], [], [], [], []
+assistance_queue = []
+assistance_active = []
 
 cutter_stations = [0 for _ in range(CUTTER_STATIONS)]
 cutter_stations_epochs = [None for _ in range(CUTTER_STATIONS)]
@@ -208,7 +212,8 @@ def info():
         return Response({"Not Authorized": ""}, status=401)  
     group_info = getGroup(session["groupId"])
     isAdmin = database.check_admin(session["groupId"])
-    return {"name": group_info.name, "groupNumber": group_info.groupNumber, "isAdmin": isAdmin, "username": group_info.username, "members": group_info.members}
+    in_assistance_queue = group_info in assistance_queue
+    return {"name": group_info.name, "groupNumber": group_info.groupNumber, "isAdmin": isAdmin, "username": group_info.username, "members": group_info.members, "inAssistanceQueue": in_assistance_queue}
 
 @app.route("/joinqueue", methods=["POST"])
 def joinqueue():
@@ -230,13 +235,117 @@ def accept():
 def giveup():
     return authenticated_request(function=giveUpSpot, nameType="spotType")
 
-@app.route("/queue", methods=["GET"])
+@app.route("/queue")
 def queue():
-    return {"cutter_queue": cutter_queue,
-            "cutter_stations": cutter_stations,
-            "hot_glue_queue": hot_glue_queue,
-            "hot_glue_stations": hotglue_stations}, 200
+    return {"cutter_queue": [group.groupNumber for group in cutter_queue],
+            "hot_glue_queue": [group.groupNumber for group in hot_glue_queue],
+            "cutter_stations": [group.groupNumber if hasattr(group, 'groupNumber') else group for group in cutter_stations],
+            "hot_glue_stations": [group.groupNumber if hasattr(group, 'groupNumber') else group for group in hotglue_stations],
+            "assistance_queue": [group.groupNumber for group in assistance_queue] 
+            }, 200
 
+# Assistance Queue Endpoints
+
+@app.route("/queue/assistance", methods=["GET"])
+def get_assistance_queue():
+    # Return full group info for admin
+    return {
+        "queue": [asdict(group) for group in assistance_queue],
+        "active": [asdict(group) for group in assistance_active]
+    }, 200
+
+@app.route("/queue/assistance/join", methods=["POST"])
+def join_assistance_queue():
+    valid, session = get_cookie()
+    if not valid:
+         return Response({"Not Authorized": ""}, status=401)
+    
+    group_info = getGroup(session["groupId"])
+    
+    # Check if already in queue (by ID)
+    if not any(g.groupId == group_info.groupId for g in assistance_queue):
+        assistance_queue.append(group_info)
+        return {"status": "Joined"}, 200
+    return {"status": "Already in queue"}, 400
+
+@app.route("/queue/assistance/pop", methods=["POST"])
+def pop_assistance_queue():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+        
+    if len(assistance_queue) > 0:
+        removed = assistance_queue.pop(0)
+        # Move to active list if not already there (sanity check)
+        if not any(g.groupId == removed.groupId for g in assistance_active):
+             assistance_active.append(removed)
+        return {"status": "Popped", "group": asdict(removed)}, 200
+    return {"status": "Queue empty"}, 200
+
+@app.route("/queue/assistance/finish", methods=["POST"])
+def finish_assistance():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    group_id = request.json.get("groupId")
+    if not group_id:
+        return {"error": "Missing groupId"}, 400
+        
+    target_group = None
+    for g in assistance_active:
+        if g.groupId == group_id:
+            target_group = g
+            break
+            
+    if target_group:
+        assistance_active.remove(target_group)
+        return {"status": "Finished"}, 200
+        
+    return {"error": "Group not found in active list"}, 404
+
+@app.route("/queue/assistance/cancel", methods=["POST"])
+def cancel_assistance():
+    valid, session = get_cookie()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+        
+    group_info = getGroup(session["groupId"])
+    
+    # Remove from queue if present
+    target_in_queue = None
+    for g in assistance_queue:
+        if g.groupId == group_info.groupId:
+            target_in_queue = g
+            break
+            
+    if target_in_queue:
+        assistance_queue.remove(target_in_queue)
+        return {"status": "Cancelled"}, 200
+        
+    return {"status": "Not in queue"}, 200
+
+@app.route("/queue/assistance/remove", methods=["POST"])
+def remove_assistance_queue():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    group_id = request.json.get("groupId")
+    if not group_id:
+        return {"error": "Missing groupId"}, 400
+        
+    target_group = None
+    for g in assistance_queue:
+        if g.groupId == group_id:
+            target_group = g
+            break
+            
+    if target_group:
+        assistance_queue.remove(target_group)
+        return {"status": "Removed"}, 200
+        
+    return {"error": "Group not found in queue"}, 404
 
 @app.route("/countdown", methods=["GET", "POST"])
 def countdown():
