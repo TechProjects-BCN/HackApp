@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getBackendUrl } from "../utils/config";
+import StationSidebar from "../components/StationSidebar";
 
 export default function Screen() {
   const [nextEvent, setNextEvent] = useState<string | null>(null);
@@ -34,8 +35,9 @@ export default function Screen() {
       const queue_data = await fetchData(`${getBackendUrl()}/queue`);
       const countdown_data = await fetchData(`${getBackendUrl()}/countdown`);
 
+      // Keys updated to match backend refactor: cutter_stations and hotglue_stations
       const current_cutter_status = queue_data["cutter_stations"] || [];
-      const current_hot_status = queue_data["hot_glue_stations"] || [];
+      const current_hot_status = queue_data["hotglue_stations"] || [];
 
       setNextEvent(countdown_data["next_event"] || countdown_data["event"]);
       setCurrentEvent(countdown_data["current_event"] || "Networking");
@@ -138,56 +140,10 @@ export default function Screen() {
       </div>
 
       {/* Cutting Stations Sidebar */}
-      <div className="w-1/5 flex flex-col gap-2 overflow-hidden">
-        <div className="glass-card p-2 text-center">
-          <h2 className="text-base font-bold text-white uppercase tracking-wider">Box Cutter</h2>
-        </div>
-        <div className="flex-1 flex flex-col gap-2 min-h-0">
-          {cut.map((item, index) => (
-            <div key={index} className="glass-card flex-1 px-3 flex flex-row items-center justify-between gap-1 min-h-0">
-              <div className="flex flex-col justify-center">
-                <div className="text-[9px] font-mono text-slate-500 uppercase tracking-wider leading-none mb-0.5">Station</div>
-                <div className={`text-2xl font-bold leading-none ${item === 0 ? "text-green-400" :
-                  item === 2 ? "text-slate-600" : "text-red-400"
-                  }`}>
-                  #{index + 1}
-                </div>
-              </div>
-              <div className={`text-[10px] font-bold px-2 py-1 rounded-md text-center truncate max-w-[60%] ${item === 0 ? "bg-green-500/10 text-green-400" :
-                item === 2 ? "bg-slate-500/10 text-slate-500" : "bg-red-500/10 text-red-400"
-                }`}>
-                {item === 0 ? "AVAILABLE" : item === 2 ? "UNAVAILABLE" : (typeof item === 'object' ? (item as any).name : "OCCUPIED")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <StationSidebar title="Box Cutter" stations={cut} />
 
       {/* Hot Glue Stations Sidebar */}
-      <div className="w-1/5 flex flex-col gap-2 overflow-hidden">
-        <div className="glass-card p-2 text-center">
-          <h2 className="text-base font-bold text-white uppercase tracking-wider">Hot Glue</h2>
-        </div>
-        <div className="flex-1 flex flex-col gap-2 min-h-0">
-          {hot.map((item, index) => (
-            <div key={index} className="glass-card flex-1 px-3 flex flex-row items-center justify-between gap-1 min-h-0">
-              <div className="flex flex-col justify-center">
-                <div className="text-[9px] font-mono text-slate-500 uppercase tracking-wider leading-none mb-0.5">Station</div>
-                <div className={`text-2xl font-bold leading-none ${item === 0 ? "text-green-400" :
-                  item === 2 ? "text-slate-600" : "text-red-400"
-                  }`}>
-                  #{index + 1}
-                </div>
-              </div>
-              <div className={`text-[10px] font-bold px-2 py-1 rounded-md text-center truncate max-w-[60%] ${item === 0 ? "bg-green-500/10 text-green-400" :
-                item === 2 ? "bg-slate-500/10 text-slate-500" : "bg-red-500/10 text-red-400"
-                }`}>
-                {item === 0 ? "AVAILABLE" : item === 2 ? "UNAVAILABLE" : (typeof item === 'object' ? (item as any).name : "OCCUPIED")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <StationSidebar title="Hot Glue" stations={hot} />
     </div>
   );
 }

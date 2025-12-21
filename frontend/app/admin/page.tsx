@@ -10,6 +10,7 @@ export default function Admin() {
   const [users, setUsers] = useState<any[]>([]);
   const [config, setConfig] = useState<any>({
     event: "Loading...",
+    current_event: "Loading...",
     target_epoch: 0,
     cutter: 0,
     hotglue: 0,
