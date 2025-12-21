@@ -19,6 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV BACKEND_URL="http://backend:5000"
 
 RUN npm run build
 
@@ -45,6 +46,7 @@ USER nextjs
 EXPOSE 3000
 
 ENV PORT=3000
+ENV BACKEND_URL="http://backend:5000"
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/config/next-config-js/output

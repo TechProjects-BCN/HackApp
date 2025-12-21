@@ -31,6 +31,7 @@ services:
       DB_NAME: techprojects
       DB_USER: techprojects
       DB_PASSWORD: 12341234
+      BACKEND_URL: http://backend:5000
 
     depends_on:
       postgres:

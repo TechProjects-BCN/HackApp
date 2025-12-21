@@ -1,4 +1,4 @@
-import { useLanguage } from '../../context/LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function StationSidebar({ title, stations }: { title: string, stations: any[] }) {
     return (
