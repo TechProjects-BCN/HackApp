@@ -53,7 +53,7 @@ export default function Queue() {
             } else {
                 router.push("/");
             }
-        }, 1000);
+        }, 4000);
 
         return () => clearInterval(interval);
     }, [groups_in_front]);

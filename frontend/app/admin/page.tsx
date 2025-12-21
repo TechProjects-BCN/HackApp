@@ -23,6 +23,18 @@ export default function Admin() {
 
   const [cut, setCut] = useState<any[]>([]);
   const [hot, setHot] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+
+  // Alerts State
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [newAlertMsg, setNewAlertMsg] = useState("");
+  const [newAlertType, setNewAlertType] = useState("onetime");
+  const [newAlertSeverity, setNewAlertSeverity] = useState("info");
+
+  // Links State
+  const [links, setLinks] = useState<any[]>([]);
+  const [newLinkTitle, setNewLinkTitle] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
 
   // Fetch Users
   const fetchUsers = async () => {
@@ -41,7 +53,7 @@ export default function Admin() {
       const res = await fetch(`${getBackendUrl()}/queue`);
       const data = await res.json();
       setCut(data.cutter_stations || []);
-      setHot(data.hot_glue_stations || []);
+      setHot(data.hotglue_stations || []);
 
       // Only update config state if we haven't modified it locally yet (optional, but good for init)
       // For now, let's separate server status 'cut/hot' from editable 'config' state
@@ -70,8 +82,97 @@ export default function Admin() {
   const fetchDefaultLanguage = async () => {
     try {
       const res = await fetch(`${getBackendUrl()}/admin/config/language`);
-      const data = await res.json();
-      setConfig((prev: any) => ({ ...prev, default_language: data.language }));
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/stats`, { credentials: "include" });
+      if (res.ok) {
+        setStats(await res.json());
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/alerts`);
+      if (res.ok) {
+        const data = await res.json();
+        setAlerts(data.alerts || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const createAlert = async () => {
+    if (!newAlertMsg) return;
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/alerts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: newAlertMsg, type: newAlertType, severity: newAlertSeverity }),
+        credentials: "include"
+      });
+      if (res.ok) {
+        setNewAlertMsg("");
+        fetchAlerts();
+        alert("Alert Sent!");
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const deactivateAlert = async (id: number) => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/alerts/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+        credentials: "include"
+      });
+      if (res.ok) {
+        fetchAlerts();
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchLinks = async () => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/links`);
+      if (res.ok) {
+        const data = await res.json();
+        setLinks(data.links || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const createLink = async () => {
+    if (!newLinkTitle || !newLinkUrl) return;
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newLinkTitle, url: newLinkUrl }),
+        credentials: "include"
+      });
+      if (res.ok) {
+        setNewLinkTitle("");
+        setNewLinkUrl("");
+        fetchLinks();
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteLink = async (id: number) => {
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/links/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+        credentials: "include"
+      });
+      if (res.ok) {
+        fetchLinks();
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -79,7 +180,14 @@ export default function Admin() {
     fetchUsers();
     fetchCountdown();
     fetchDefaultLanguage();
-    const interval = setInterval(fetchStatus, 1000);
+    fetchStats();
+    fetchAlerts();
+    fetchLinks();
+    const interval = setInterval(() => {
+      fetchStatus();
+      fetchStats();
+      fetchAlerts();
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -138,6 +246,32 @@ export default function Admin() {
       credentials: "include"
     });
     fetchStatus();
+  };
+
+  const forceClear = async (type: string, id: number) => {
+    try {
+      await fetch(`${getBackendUrl()}/admin/station/clear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spotType: type, stationId: id }),
+        credentials: "include"
+      });
+      fetchStatus();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addTime = async (type: string, id: number) => {
+    try {
+      await fetch(`${getBackendUrl()}/admin/station/addtime`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spotType: type, stationId: id, minutes: 1 }),
+        credentials: "include"
+      });
+      fetchStatus();
+    } catch (e) { console.error(e); }
   };
 
   const clearStation = async (type: string, index: number) => {
@@ -214,6 +348,25 @@ export default function Admin() {
 
     setEditingUser(null);
     fetchUsers();
+  };
+
+  const resetStats = async () => {
+    if (!confirm("CRITICAL WARNING: This will delete ALL session history and statistics. Are you sure?")) return;
+    try {
+      const res = await fetch(`${getBackendUrl()}/admin/stats/reset`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (res.ok) {
+        alert("Statistics have been reset.");
+        fetchStats();
+      } else {
+        alert("Failed to reset statistics.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error resetting statistics.");
+    }
   };
 
   return (
@@ -330,6 +483,35 @@ export default function Admin() {
           className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${activeTab === "system" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
         >
           System Settings
+        </button>
+        <button
+          onClick={() => setActiveTab("stats")}
+          className={`p-4 rounded-xl font-bold transition-all text-left ${activeTab === "stats"
+            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+            : "text-slate-400 hover:bg-white/5 hover:text-white"
+            }`}
+        >
+          Statistics
+        </button>
+
+        <button
+          onClick={() => setActiveTab("alerts")}
+          className={`p-4 rounded-xl font-bold transition-all text-left ${activeTab === "alerts"
+            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+            : "text-slate-400 hover:bg-white/5 hover:text-white"
+            }`}
+        >
+          Alerts
+        </button>
+
+        <button
+          onClick={() => setActiveTab("links")}
+          className={`p-4 rounded-xl font-bold transition-all text-left ${activeTab === "links"
+            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+            : "text-slate-400 hover:bg-white/5 hover:text-white"
+            }`}
+        >
+          Resources
         </button>
       </div>
 
@@ -458,21 +640,40 @@ export default function Admin() {
                         </div>
                         {typeof s === 'object' && <div className="text-xs text-white mt-1">{s.name}</div>}
                       </div>
-                      <div className="flex gap-2 mt-3 w-full">
+
+                      <div className="mt-3 w-full space-y-2">
+                        {typeof s === 'object' && s.name !== "Free" && s.name !== "Disabled" && s.name !== "Reserved" ? (
+                          <div className="flex gap-2 w-full">
+                            <button
+                              onClick={() => addTime("cutter", index + 1)}
+                              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 p-2 rounded flex-1 text-xs font-bold transition-colors"
+                              title="Add 1 Minute"
+                            >
+                              +1m
+                            </button>
+                            <button
+                              onClick={() => { if (confirm("Force clear this station?")) forceClear("cutter", index + 1); }}
+                              className="bg-red-500/20 text-red-400 hover:bg-red-500/40 p-2 rounded flex-1 text-xs font-bold transition-colors"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => clearStation("cutter", index)}
+                            className="w-full bg-red-500/20 text-red-400 py-1 px-2 rounded text-xs font-bold hover:bg-red-500/30 transition-colors"
+                          >
+                            Force Clear
+                          </button>
+                        )}
                         <button
                           onClick={() => toggleStation("cutter", index)}
-                          className={`flex-1 py-1 px-2 rounded text-xs font-bold transition-colors ${s === 2
+                          className={`w-full py-2 px-2 rounded text-xs font-bold transition-colors ${s === 2
                             ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
                             : "bg-slate-500/20 text-slate-400 hover:bg-slate-500/30"
                             }`}
                         >
-                          {s === 2 ? "ENABLE" : "DISABLE"}
-                        </button>
-                        <button
-                          onClick={() => clearStation("cutter", index)}
-                          className="flex-1 bg-red-500/20 text-red-400 py-1 px-2 rounded text-xs font-bold hover:bg-red-500/30 transition-colors"
-                        >
-                          Force Clear
+                          {s === 2 ? "ENABLE STATION" : "DISABLE STATION"}
                         </button>
                       </div>
                     </div>
@@ -494,21 +695,40 @@ export default function Admin() {
                         </div>
                         {typeof s === 'object' && <div className="text-xs text-white mt-1">{s.name}</div>}
                       </div>
-                      <div className="flex gap-2 mt-3 w-full">
+
+                      <div className="mt-3 w-full space-y-2">
+                        {typeof s === 'object' && s.name !== "Free" && s.name !== "Disabled" && s.name !== "Reserved" ? (
+                          <div className="flex gap-2 w-full">
+                            <button
+                              onClick={() => addTime("hotglue", index + 1)}
+                              className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 p-2 rounded flex-1 text-xs font-bold transition-colors"
+                              title="Add 1 Minute"
+                            >
+                              +1m
+                            </button>
+                            <button
+                              onClick={() => { if (confirm("Force clear this station?")) forceClear("hotglue", index + 1); }}
+                              className="bg-red-500/20 text-red-400 hover:bg-red-500/40 p-2 rounded flex-1 text-xs font-bold transition-colors"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => clearStation("hotglue", index)}
+                            className="w-full bg-red-500/20 text-red-400 py-1 px-2 rounded text-xs font-bold hover:bg-red-500/30 transition-colors"
+                          >
+                            Force Clear
+                          </button>
+                        )}
                         <button
                           onClick={() => toggleStation("hotglue", index)}
-                          className={`flex-1 py-1 px-2 rounded text-xs font-bold transition-colors ${s === 2
+                          className={`w-full py-2 px-2 rounded text-xs font-bold transition-colors ${s === 2
                             ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
                             : "bg-slate-500/20 text-slate-400 hover:bg-slate-500/30"
                             }`}
                         >
-                          {s === 2 ? "ENABLE" : "DISABLE"}
-                        </button>
-                        <button
-                          onClick={() => clearStation("hotglue", index)}
-                          className="flex-1 bg-red-500/20 text-red-400 py-1 px-2 rounded text-xs font-bold hover:bg-red-500/30 transition-colors"
-                        >
-                          Force Clear
+                          {s === 2 ? "ENABLE STATION" : "DISABLE STATION"}
                         </button>
                       </div>
                     </div>
@@ -569,60 +789,423 @@ export default function Admin() {
               </table>
             </div>
           </div>
-        )}
+        )
+        }
 
-        {activeTab === "system" && (
-          <div className="space-y-8 max-w-4xl">
-            <h2 className="text-xl font-bold text-white">System Configuration</h2>
+        {
+          activeTab === "system" && (
+            <div className="space-y-8 max-w-4xl">
+              <h2 className="text-xl font-bold text-white">System Configuration</h2>
 
-            <div className="glass-card p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white">App Appearance</h3>
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-white">App Appearance</h3>
 
-              <div className="space-y-2">
-                <label className="text-sm text-slate-400">App Title (e.g. Hack26)</label>
-                <input
-                  type="text"
-                  value={config.app_title || ""}
-                  onChange={(e) => setConfig({ ...config, app_title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
-                />
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-400">App Title (e.g. Hack26)</label>
+                  <input
+                    type="text"
+                    value={config.app_title || ""}
+                    onChange={(e) => setConfig({ ...config, app_title: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-400">App Subtitle (e.g. MIT • CIC • UPC)</label>
+                  <input
+                    type="text"
+                    value={config.app_subtitle || ""}
+                    onChange={(e) => setConfig({ ...config, app_subtitle: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
+                  />
+                </div>
+
+                <button onClick={updateEventConfig} className="btn-primary w-full py-2 text-sm">Update Appearance</button>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm text-slate-400">App Subtitle (e.g. MIT • CIC • UPC)</label>
-                <input
-                  type="text"
-                  value={config.app_subtitle || ""}
-                  onChange={(e) => setConfig({ ...config, app_subtitle: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
-                />
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-white">Default Language</h3>
+                <p className="text-sm text-slate-400">
+                  This language will be used for new users who haven't selected a preference yet.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {['en', 'es', 'ca', 'it', 'ko', 'zh', 'ja'].map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => updateDefaultLanguage(lang)}
+                      className={`py-3 px-4 rounded-xl border font-bold transition-all ${config.default_language === lang
+                        ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                        : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
+                        }`}
+                    >
+                      {lang.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              <button onClick={updateEventConfig} className="btn-primary w-full py-2 text-sm">Update Appearance</button>
             </div>
+          )
+        }
+        {
+          activeTab === "stats" && stats && (
+            <div className="space-y-8 max-w-4xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-white">System Statistics</h2>
+                <button
+                  onClick={resetStats}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                >
+                  Reset Statistics
+                </button>
+              </div>
 
-            <div className="glass-card p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white">Default Language</h3>
-              <p className="text-sm text-slate-400">
-                This language will be used for new users who haven't selected a preference yet.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {['en', 'es', 'ca', 'it', 'ko', 'zh', 'ja'].map((lang) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="glass-card p-4 space-y-1">
+                  <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Total Groups</div>
+                  <div className="text-3xl font-bold text-white">{stats.total_groups || 0}</div>
+                </div>
+                <div className="glass-card p-4 space-y-1">
+                  <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Total Sessions</div>
+                  <div className="text-3xl font-bold text-blue-400">
+                    {(stats.total_sessions_cutter || 0) + (stats.total_sessions_hotglue || 0)}
+                  </div>
+                </div>
+                <div className="glass-card p-4 space-y-1">
+                  <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Assistance Provided</div>
+                  <div className="text-3xl font-bold text-purple-400">{stats.assistance_total_helped || 0}</div>
+                  <div className="text-xs text-slate-400">Avg Time: {(stats.assistance_avg_time || 0).toFixed(0)}s</div>
+                </div>
+                <div className="glass-card p-4 space-y-1">
+                  <div className="text-sm text-slate-400 uppercase tracking-wider font-semibold">Pending Assistance</div>
+                  <div className="text-3xl font-bold text-red-400">{stats.assistance_queue_length || 0}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="glass-card p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-slate-300 border-b border-white/10 pb-2">Cutter Station</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Current Queue</span>
+                      <span className="text-xl font-mono text-white">{stats.cutter_queue_length || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Occupied Stations</span>
+                      <span className="text-xl font-mono text-white">{stats.cutter_stations_occupied || 0} / 4</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Avg. Duration</span>
+                      <span className="text-xl font-mono text-blue-400">{((stats.cutter_avg_time || 0) / 60).toFixed(1)} min</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Total Completed</span>
+                      <span className="text-xl font-mono text-green-400">{stats.total_sessions_cutter || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-card p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-slate-300 border-b border-white/10 pb-2">Hot Glue Station</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Current Queue</span>
+                      <span className="text-xl font-mono text-white">{stats.hotglue_queue_length || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Occupied Stations</span>
+                      <span className="text-xl font-mono text-white">{stats.hotglue_stations_occupied || 0} / 5</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Avg. Duration</span>
+                      <span className="text-xl font-mono text-blue-400">{((stats.hotglue_avg_time || 0) / 60).toFixed(1)} min</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Total Completed</span>
+                      <span className="text-xl font-mono text-green-400">{stats.total_sessions_hotglue || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Usage Graph */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-white">Usage History (Last 24h)</h3>
+                <div className="h-80 flex items-end gap-2 border-b border-white/10 pb-2 overflow-x-auto pt-10">
+                  {(() => {
+                    const history = stats.usage_history || {};
+                    const hours = Array.from({ length: 24 }, (_, i) => i);
+                    const maxVal = Math.max(1, ...Object.values(history).map((h: any) => (h.cutter || 0) + (h.hotglue || 0)));
+
+                    return hours.map(h => {
+                      const data = history[h] || { cutter: 0, hotglue: 0 };
+                      const cutterCount = data.cutter || 0;
+                      const hotglueCount = data.hotglue || 0;
+                      const total = cutterCount + hotglueCount;
+
+                      // Calc percentages carefully to avoid NaN
+                      // Use PIXEL height (max 200px) inside h-80 (320px) container leaves ~120px for tooltip
+                      const heightPx = maxVal > 0 ? Math.max(4, (total / maxVal) * 200) : 4;
+                      const cutterPct = total > 0 ? (cutterCount / total) * 100 : 0;
+                      const hotgluePct = total > 0 ? (hotglueCount / total) * 100 : 0;
+
+                      return (
+                        <div key={h} className="flex-1 min-w-[30px] flex flex-col items-center gap-1 group relative">
+                          <div className="w-full bg-white/10 rounded-t overflow-hidden flex flex-col-reverse relative hover:bg-white/20 transition-colors" style={{ height: `${heightPx}px` }}>
+                            <div className="w-full bg-blue-500" style={{ height: `${cutterPct}%` }}></div>
+                            <div className="w-full bg-orange-500" style={{ height: `${hotgluePct}%` }}></div>
+                          </div>
+                          <span className="text-[10px] text-slate-500">{h}:00</span>
+
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full mb-2 bg-black/90 p-2 rounded text-xs whitespace-nowrap hidden group-hover:block z-10 border border-white/10">
+                            <div className="text-blue-400">Cutter: {cutterCount}</div>
+                            <div className="text-orange-400">Hot Glue: {hotglueCount}</div>
+                            <div className="text-white font-bold border-t border-white/10 mt-1 pt-1">Total: {total}</div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+
+              {/* Group Leaderboard */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-white">Top Active Groups</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-slate-400 uppercase bg-white/5">
+                      <tr>
+                        <th className="px-4 py-2 rounded-l-lg">Rank</th>
+                        <th className="px-4 py-2">Group Name</th>
+                        <th className="px-4 py-2 text-center text-blue-400">Cutter</th>
+                        <th className="px-4 py-2 text-center text-orange-400">Hot Glue</th>
+                        <th className="px-4 py-2 text-center rounded-r-lg">Total Sessions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(stats.leaderboard || []).map((group: any, idx: number) => (
+                        <tr key={group.name} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-2 font-bold text-slate-500">#{idx + 1}</td>
+                          <td className="px-4 py-2 font-medium text-white">{group.name}</td>
+                          <td className="px-4 py-2 text-center text-blue-300">{group.cutter}</td>
+                          <td className="px-4 py-2 text-center text-orange-300">{group.hotglue}</td>
+                          <td className="px-4 py-2 text-center font-bold text-white">{group.total}</td>
+                        </tr>
+                      ))}
+                      {(stats.leaderboard || []).length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                            No sessions recorded yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {
+          activeTab === "alerts" && (
+            <div className="space-y-8 max-w-4xl">
+              <h2 className="text-xl font-bold text-white">Manage Global Alerts</h2>
+
+              {/* Create Alert */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-slate-300 border-b border-white/10 pb-2">Send New Alert</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Message</label>
+                    <textarea
+                      value={newAlertMsg}
+                      onChange={(e) => setNewAlertMsg(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 min-h-[100px]"
+                      placeholder="Enter announcement message..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Severity / Style</label>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setNewAlertSeverity("info")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors border ${newAlertSeverity === "info" ? "bg-blue-500/20 border-blue-500 text-blue-400" : "border-white/10 text-slate-400 hover:bg-white/5"}`}
+                      >
+                        Info (Blue)
+                      </button>
+                      <button
+                        onClick={() => setNewAlertSeverity("warning")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors border ${newAlertSeverity === "warning" ? "bg-orange-500/20 border-orange-500 text-orange-400" : "border-white/10 text-slate-400 hover:bg-white/5"}`}
+                      >
+                        Warning (Yellow)
+                      </button>
+                      <button
+                        onClick={() => setNewAlertSeverity("announcement")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors border ${newAlertSeverity === "announcement" ? "bg-purple-500/20 border-purple-500 text-purple-400" : "border-white/10 text-slate-400 hover:bg-white/5"}`}
+                      >
+                        Announcement (Purple)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Alert Type</label>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setNewAlertType("onetime")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors border ${newAlertType === "onetime" ? "bg-blue-500/20 border-blue-500 text-blue-400" : "border-white/10 text-slate-400 hover:bg-white/5"}`}
+                      >
+                        One-time (Dismissible)
+                      </button>
+                      <button
+                        onClick={() => setNewAlertType("persistent")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors border ${newAlertType === "persistent" ? "bg-red-500/20 border-red-500 text-red-400" : "border-white/10 text-slate-400 hover:bg-white/5"}`}
+                      >
+                        Persistent (Always Show)
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {newAlertType === "onetime"
+                        ? "Users will see this once and can dismiss it permanently."
+                        : "Users will see this every time they open the app until you deactivate it."}
+                    </p>
+                  </div>
+
                   <button
-                    key={lang}
-                    onClick={() => updateDefaultLanguage(lang)}
-                    className={`py-3 px-4 rounded-xl border font-bold transition-all ${config.default_language === lang
-                      ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
-                      : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
-                      }`}
+                    onClick={createAlert}
+                    disabled={!newAlertMsg}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {lang.toUpperCase()}
+                    Send Alert
                   </button>
-                ))}
+                </div>
+              </div>
+
+              {/* Active Alerts List */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-slate-300 border-b border-white/10 pb-2">Active Alerts</h3>
+
+                {alerts.length === 0 ? (
+                  <div className="text-slate-500 text-center py-8">No active alerts</div>
+                ) : (
+                  <div className="space-y-3">
+                    {alerts.map((alert: any) => (
+                      <div key={alert.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-start gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${alert.severity === 'warning' ? 'bg-orange-500/10 border-orange-500/50 text-orange-400' :
+                              alert.severity === 'announcement' ? 'bg-purple-500/10 border-purple-500/50 text-purple-400' :
+                                'bg-blue-500/10 border-blue-500/50 text-blue-400'
+                              }`}>
+                              {alert.severity || 'info'}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${alert.type === 'persistent' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                              {alert.type}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {new Date(alert.created_at * 1000).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-white text-md">{alert.message}</p>
+                        </div>
+
+                        <button
+                          onClick={() => deactivateAlert(alert.id)}
+                          className="text-red-400 hover:bg-red-500/10 p-2 rounded transition-colors"
+                          title="Deactivate Alert"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )
+        }
+
+        {
+          activeTab === "links" && (
+            <div className="space-y-8 max-w-4xl">
+              <h2 className="text-xl font-bold text-white">Manage Resources / Links</h2>
+
+              {/* Create Link */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-slate-300 border-b border-white/10 pb-2">Add New Resource</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={newLinkTitle}
+                      onChange={(e) => setNewLinkTitle(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
+                      placeholder="e.g. Project Documentation"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">URL</label>
+                    <input
+                      type="text"
+                      value={newLinkUrl}
+                      onChange={(e) => setNewLinkUrl(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
+                      placeholder="e.g. https://example.com/docs"
+                    />
+                  </div>
+
+                  <button
+                    onClick={createLink}
+                    disabled={!newLinkTitle || !newLinkUrl}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Add Link
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Links List */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-bold text-slate-300 border-b border-white/10 pb-2">Active Resources</h3>
+
+                {links.length === 0 ? (
+                  <div className="text-slate-500 text-center py-8">No resources added</div>
+                ) : (
+                  <div className="space-y-3">
+                    {links.map((link: any) => (
+                      <div key={link.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center gap-4">
+                        <div className="overflow-hidden">
+                          <h4 className="text-white font-bold text-base truncate">{link.title}</h4>
+                          <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-sm hover:underline truncate block">
+                            {link.url}
+                          </a>
+                        </div>
+
+                        <button
+                          onClick={() => deleteLink(link.id)}
+                          className="text-red-400 hover:bg-red-500/10 p-2 rounded transition-colors flex-shrink-0"
+                          title="Delete Link"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
       </div >
     </div >
   );

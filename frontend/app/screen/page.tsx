@@ -58,7 +58,8 @@ export default function Screen() {
     };
 
     updateData(); // Run immediately
-    const fetchInterval = setInterval(updateData, 1000);
+    updateData(); // Run immediately
+    const fetchInterval = setInterval(updateData, 4000);
 
     // Separate countdown timer
     const listTimer = setInterval(() => {

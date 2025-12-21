@@ -15,6 +15,8 @@ export default function Index() {
     app_title: "",
     app_subtitle: ""
   });
+  const [links, setLinks] = useState<any[]>([]);
+  const [showResources, setShowResources] = useState(false);
 
   useEffect(() => {
     fetch(`${getBackendUrl()}/info`, { credentials: "include" }).then(res => {
@@ -36,6 +38,14 @@ export default function Index() {
         });
       }
     });
+
+    fetch(`${getBackendUrl()}/links`).then(res => {
+      if (res.ok) {
+        res.json().then(data => {
+          setLinks(data.links || []);
+        });
+      }
+    });
   }, [])
 
   const joinQueue = async (queueType: string) => {
@@ -50,7 +60,7 @@ export default function Index() {
   const router = useRouter();
 
   return (
-    <div className="h-dvh flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+    <div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-1">
           <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
@@ -130,6 +140,16 @@ export default function Index() {
           >
             {t('tutorial')}
           </button>
+
+          {links.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowResources(true)}
+              className="btn-secondary w-full py-2 bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-300"
+            >
+              {t('resources')}
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -163,6 +183,46 @@ export default function Index() {
           </div>
         </div>
       </div>
-    </div>
+
+
+      {/* Resources Modal */}
+      {
+        showResources && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 relative shadow-2xl animate-in zoom-in-95 duration-200">
+              <button
+                onClick={() => setShowResources(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <h2 className="text-xl font-bold text-white mb-6">{t('resources')}</h2>
+
+              <div className="space-y-3">
+                {links.map((link: any) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/30 transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white group-hover:text-blue-400 transition-colors">{link.title}</span>
+                      <svg className="w-5 h-5 text-slate-500 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 }

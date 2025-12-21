@@ -326,6 +326,7 @@ def pop_assistance_queue():
     if removed:
         # Move to active list if not already there (sanity check)
         if not any(g['group'].groupId == removed['group'].groupId for g in assistance_active):
+             removed["start_time"] = time.time() # Start timing
              assistance_active.append(removed)
              
         # Format response
@@ -345,15 +346,15 @@ def finish_assistance():
     if not group_id:
         return {"error": "Missing groupId"}, 400
         
-    target_item = None
-    for item in assistance_active:
-        if item['group'].groupId == group_id:
-            target_item = item
-            break
-            
     if target_item:
         assistance_active.remove(target_item)
-        return {"status": "Finished"}, 200
+        # Calculate duration if start_time exists
+        duration = 0
+        if "start_time" in target_item:
+            duration = time.time() - target_item["start_time"]
+            database.log_assistance(group_id, duration)
+            
+        return {"status": "Finished", "duration": duration}, 200
         
     return {"error": "Group not found in active list"}, 404
 
@@ -447,6 +448,44 @@ def status():
                 break
 
     return response, 200
+
+@app.route("/admin/stats/reset", methods=["POST"])
+def admin_stats_reset():
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+        
+    success = database.reset_statistics()
+    if success:
+        return {"status": "Statistics Reset"}, 200
+    else:
+        return {"error": "Failed to reset statistics"}, 500
+
+@app.route("/admin/stats", methods=["GET"])
+def admin_stats():
+    # Allow unauthenticated access for debugging if needed, but keeping it secure normally
+    # But let's verify this endpoint is actually hit
+    print("DEBUG: /admin/stats endpoint hit")
+    valid, session = check_admin()
+    if not valid:
+        return Response({"Not Authorized": ""}, status=401)
+    
+    # DB Stats
+    db_stats = database.get_statistics()
+    
+    # In-memory Stats
+    mem_stats = {
+        "assistance_queue_length": len(assistance_queue),
+        "assistance_active_count": len(assistance_active),
+        "cutter_queue_length": len(systems["cutter"].queue),
+        "hotglue_queue_length": len(systems["hotglue"].queue),
+        "cutter_stations_occupied": sum(1 for s in systems["cutter"].stations if s not in [0, 2]),
+        "hotglue_stations_occupied": sum(1 for s in systems["hotglue"].stations if s not in [0, 2]),
+        "cutter_avg_time": database.get_avg_station_time("cutter"),
+        "hotglue_avg_time": database.get_avg_station_time("hotglue")
+    }
+    
+    return {**db_stats, **mem_stats}, 200
 
 @app.route("/admin/users", methods=["GET", "POST"])
 def admin_users():
@@ -596,6 +635,100 @@ def admin_toggle_disable():
         return {"error": "Invalid station"}, 400
         
     return {"status": "Toggled"}, 200
+
+# Alerts Endpoints
+@app.route("/alerts", methods=["GET"])
+def get_alerts():
+    return {"alerts": database.get_active_alerts()}, 200
+
+@app.route("/admin/station/addtime", methods=["POST"])
+@admin_required
+def admin_station_add_time():
+    data = request.json
+    spot_type = data.get("spotType")
+    station_id = data.get("stationId")
+    minutes = data.get("minutes", 1) # Default 1 minute
+    
+    if not spot_type or not station_id:
+        return {"error": "Missing parameters"}, 400
+        
+    if spot_type in systems:
+        system = systems[spot_type]
+        idx = int(station_id) - 1
+        
+        if 0 <= idx < len(system.stations):
+            group_info = system.stations[idx]
+            
+            # Check if station is occupied by a group (and not disabled/reserved)
+            # Station can be 0 (free), 2 (disabled), 3 (reserved), or Group object
+            if isinstance(group_info, Group): 
+                # Add time in memory (extend expiration)
+                if system.stations_epochs[idx] is not None:
+                     system.stations_epochs[idx] += (minutes * 60)
+                     
+                # Add time in DB (shift accepted time forward)
+                if database.add_station_time(group_info.groupId, spot_type, minutes * 60):
+                    return {"status": "Time Added", "new_epoch": system.stations_epochs[idx]}, 200
+                else:
+                    return {"error": "DB Update Failed"}, 500
+                    
+            return {"error": "Station not occupied by a group"}, 400
+            
+    return {"error": "Invalid Station"}, 400
+
+@app.route("/admin/alerts", methods=["POST"])
+@admin_required
+def create_alert():
+    data = request.json
+    message = data.get("message")
+    alert_type = data.get("type", "onetime")
+    severity = data.get("severity", "info")
+    
+    if not message:
+        return {"error": "Message required"}, 400
+        
+    new_id = database.create_alert(message, alert_type, severity)
+    if new_id:
+        return {"status": "Created", "id": new_id}, 200
+    return {"error": "Failed to create alert"}, 500
+
+@app.route("/admin/alerts/delete", methods=["POST"])
+@admin_required
+def delete_alert():
+    data = request.json
+    alert_id = data.get("id")
+    if database.deactivate_alert(alert_id):
+        return {"status": "Deactivated"}, 200
+    return {"error": "Failed to deactivate"}, 500
+
+# Links Endpoints
+@app.route("/links", methods=["GET"])
+def get_links():
+    return {"links": database.get_links()}, 200
+
+@app.route("/admin/links", methods=["POST"])
+@admin_required
+def create_link():
+    data = request.json
+    title = data.get("title")
+    url = data.get("url")
+    
+    if not title or not url:
+        return {"error": "Title and URL required"}, 400
+        
+    new_id = database.create_link(title, url)
+    if new_id:
+        return {"status": "Created", "id": new_id}, 200
+    return {"error": "Failed to create link"}, 500
+
+@app.route("/admin/links/delete", methods=["POST"])
+@admin_required
+def delete_link():
+    data = request.json
+    link_id = data.get("id")
+    if database.delete_link(link_id):
+        return {"status": "Deleted"}, 200
+    return {"error": "Failed to delete"}, 500
 
 def main():
     scheduler.add_job(func=updater, trigger='interval', id='job', seconds=10)

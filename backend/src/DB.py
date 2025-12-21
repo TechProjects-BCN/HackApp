@@ -181,10 +181,11 @@ class Database:
         try:
             self.db_lock.acquire(True)
             # Calculate average duration (LeftTime - AcceptedTime) for the last 20 sessions
+            # Optimization: Limit to last 20 sessions to ensure speed even with large DB
             self.cursor.execute(f"""
-                SELECT AVG(recent_sessions.duration)
+                SELECT AVG(duration)
                 FROM (
-                    SELECT (spots.LeftTime - accepted.AcceptedTime) as duration
+                    SELECT EXTRACT(EPOCH FROM (to_timestamp(LeftTime) - to_timestamp(AcceptedTime))) as duration
                     FROM spots
                     JOIN accepted ON spots.acceptedId = accepted.requestid
                     WHERE spots.spotType = '{spotType}'
@@ -201,5 +202,233 @@ class Database:
             self.db.rollback()
             print(f"DB Error in get_avg_station_time: {e}")
             return 0
+        finally:
+            self.db_lock.release()
+
+    def get_statistics(self):
+        try:
+            self.db_lock.acquire(True)
+            stats = {}
+            
+            # Total Groups
+            self.cursor.execute("SELECT COUNT(*) FROM groups")
+            stats["total_groups"] = self.cursor.fetchone()[0]
+            
+            # Total Sessions per type
+            self.cursor.execute("SELECT spotType, COUNT(*) FROM spots GROUP BY spotType")
+            rows = self.cursor.fetchall()
+            for row in rows:
+                stats[f"total_sessions_{row[0]}"] = row[1]
+            
+            # Assistance Stats
+            self.cursor.execute("SELECT COUNT(*), AVG(duration) FROM assistance_log")
+            asst_row = self.cursor.fetchone()
+            stats["assistance_total_helped"] = asst_row[0] if asst_row else 0
+            stats["assistance_avg_time"] = float(asst_row[1]) if asst_row and asst_row[1] else 0.0
+
+            # Usage History (Sessions per hour per type) - Last 24h
+            self.cursor.execute("""
+                SELECT 
+                    date_part('hour', to_timestamp(LeftTime)) as hour,
+                    spotType,
+                    COUNT(*)
+                FROM spots 
+                WHERE LeftTime IS NOT NULL
+                AND LeftTime > (EXTRACT(EPOCH FROM NOW()) - 86400)
+                GROUP BY 1, 2
+                ORDER BY 1
+            """)
+            usage_rows = self.cursor.fetchall()
+            usage_data = {}
+            for r in usage_rows:
+                h = int(r[0])
+                t = r[1]
+                c = r[2]
+                if h not in usage_data: usage_data[h] = {"cutter": 0, "hotglue": 0}
+                usage_data[h][t] = c
+            stats["usage_history"] = usage_data
+
+            # Group Leaderboard (Top 10 Active Groups)
+            print("DEBUG: Executing Leaderboard Query with groupName")
+            self.cursor.execute("""
+                SELECT 
+                    g.groupName,
+                    s.spotType,
+                    COUNT(*) as count
+                FROM spots s
+                JOIN accepted a ON s.acceptedId = a.requestid
+                JOIN groups g ON a.groupId = g.groupId
+                WHERE s.LeftTime IS NOT NULL
+                GROUP BY g.groupName, s.spotType
+            """)
+            raw_leaderboard = self.cursor.fetchall()
+            
+            # Aggregate by group
+            group_stats = {}
+            for row in raw_leaderboard:
+                name = row[0]
+                stype = row[1]
+                count = row[2]
+                
+                if name not in group_stats:
+                    group_stats[name] = {"name": name, "cutter": 0, "hotglue": 0, "total": 0}
+                
+                group_stats[name][stype] += count
+                group_stats[name]["total"] += count
+            
+            # Sort by total and take top 10
+            leaderboard = sorted(group_stats.values(), key=lambda x: x["total"], reverse=True)[:10]
+            stats["leaderboard"] = leaderboard
+
+            return stats
+        except Exception as e:
+            self.db.rollback() 
+            print(f"DB Error in get_statistics: {e}")
+            return {}
+        finally:
+            self.db_lock.release()
+
+    def log_assistance(self, groupId, duration):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"INSERT INTO assistance_log (groupId, duration, timestamp) VALUES ({groupId}, {duration}, {time.time()})")
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in log_assistance: {e}")
+        finally:
+            self.db_lock.release()
+
+    def reset_statistics(self):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute("TRUNCATE TABLE spots, accepted, assistance_log")
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in reset_statistics: {e}")
+            return False
+        finally:
+            self.db_lock.release()
+
+    # Alerts Methods
+    def create_alert(self, message, alert_type, severity="info"):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"INSERT INTO alerts (message, type, severity, created_at, is_active) VALUES ('{message}', '{alert_type}', '{severity}', {time.time()}, TRUE) RETURNING id")
+            new_id = self.cursor.fetchone()[0]
+            self.db.commit()
+            return new_id
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in create_alert: {e}")
+            return None
+        finally:
+            self.db_lock.release()
+
+    def get_active_alerts(self):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute("SELECT id, message, type, created_at, severity FROM alerts WHERE is_active = TRUE ORDER BY created_at DESC")
+            rows = self.cursor.fetchall()
+            alerts = []
+            for row in rows:
+                alerts.append({
+                    "id": row[0],
+                    "message": row[1],
+                    "type": row[2],
+                    "created_at": row[3],
+                    "severity": row[4] if len(row) > 4 else "info"
+                })
+            return alerts
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in get_active_alerts: {e}")
+            return []
+        finally:
+            self.db_lock.release()
+
+    # Links Methods
+    def create_link(self, title, url):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"INSERT INTO links (title, url, created_at) VALUES ('{title}', '{url}', {time.time()}) RETURNING id")
+            new_id = self.cursor.fetchone()[0]
+            self.db.commit()
+            return new_id
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in create_link: {e}")
+            return None
+        finally:
+            self.db_lock.release()
+
+    def get_links(self):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute("SELECT id, title, url FROM links ORDER BY created_at ASC")
+            rows = self.cursor.fetchall()
+            links = []
+            for row in rows:
+                links.append({
+                    "id": row[0],
+                    "title": row[1],
+                    "url": row[2]
+                })
+            return links
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in get_links: {e}")
+            return []
+        finally:
+            self.db_lock.release()
+
+    def delete_link(self, link_id):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"DELETE FROM links WHERE id = {link_id}")
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in delete_link: {e}")
+            return False
+        finally:
+            self.db_lock.release()
+            
+    def deactivate_alert(self, alert_id):
+        try:
+            self.db_lock.acquire(True)
+            self.cursor.execute(f"UPDATE alerts SET is_active = FALSE WHERE id = {alert_id}")
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in deactivate_alert: {e}")
+            return False
+        finally:
+            self.db_lock.release()
+
+    def add_station_time(self, groupId, spotType, seconds):
+        try:
+            self.db_lock.acquire(True)
+            # Update the latest accepted record for this group/type
+            # Subquery to find the specific row ID first is safest
+            self.cursor.execute(f"""
+                UPDATE accepted 
+                SET AcceptedTime = AcceptedTime + {seconds} 
+                WHERE requestid = (
+                    SELECT requestid FROM accepted 
+                    WHERE groupid = {groupId} AND spottype = '{spotType}' 
+                    ORDER BY AcceptedTime DESC LIMIT 1
+                )
+            """)
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            print(f"DB Error in add_station_time: {e}")
+            return False
         finally:
             self.db_lock.release()

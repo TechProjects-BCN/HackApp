@@ -13,13 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hack26 App",
+  title: "Hack Companion App",
   description: "Application for Running Hackathons",
 };
 
 import { Providers } from "./providers";
 
 // ... existing imports ...
+
+import AlertSystem from "../components/AlertSystem";
 
 export default function RootLayout({
   children,
@@ -33,6 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
+          <AlertSystem />
           {children}
         </Providers>
       </body>

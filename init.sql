@@ -12,3 +12,19 @@ INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID,
 INSERT INTO admins(groupId) VALUES (1);
 
 CREATE USER postgres SUPERUSER;
+
+CREATE TABLE IF NOT EXISTS assistance_log (
+    id SERIAL PRIMARY KEY, 
+    groupId INT, 
+    duration FLOAT, 
+    timestamp FLOAT
+);
+
+CREATE TABLE IF NOT EXISTS alerts (
+    id SERIAL PRIMARY KEY,
+    message TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at FLOAT NOT NULL,
+    severity VARCHAR(20) DEFAULT 'info'
+);
