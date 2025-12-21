@@ -346,6 +346,19 @@ def finish_assistance():
     if not group_id:
         return {"error": "Missing groupId"}, 400
         
+    target_item = None
+    for item in assistance_active:
+        # Check if item['group'] is a dict or object. Previous code suggests it might be object (asdict usage).
+        # DB.py usually returns objects from fetchall but here it might be stored as object.
+        # Let's check how it's stored. Line 330: assistance_active.append(removed).
+        # Line 323: removed = assistance_queue.pop(0).
+        # assistance_queue items come from /queue/assistance/join.
+        # Let's assume item['group'] has groupId attribute based on line 333 asdict(removed['group']).
+        if getattr(item['group'], 'groupId', None) == group_id or \
+           (isinstance(item['group'], dict) and item['group'].get('groupId') == group_id):
+            target_item = item
+            break
+            
     if target_item:
         assistance_active.remove(target_item)
         # Calculate duration if start_time exists
