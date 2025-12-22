@@ -28,3 +28,10 @@ CREATE TABLE IF NOT EXISTS alerts (
     created_at FLOAT NOT NULL,
     severity VARCHAR(20) DEFAULT 'info'
 );
+
+CREATE TABLE IF NOT EXISTS links (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at FLOAT NOT NULL
+);

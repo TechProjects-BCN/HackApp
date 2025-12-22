@@ -1,26 +1,18 @@
-
-import psycopg2
+import sys
 import os
-import time
 
-DB_NAME = os.getenv('DB_NAME', 'techprojects')
-DB_USER = os.getenv('DB_USER', 'techprojects')
-DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
-DB_PASSWORD = os.getenv('DB_PASSWORD', '12341234')
-DB_PORT = 5432
+# Add parent directory to path to import app
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from app import app, database
 
 def run_migration():
+    print("Creating links table...")
     try:
-        conn = psycopg2.connect(
-            database=DB_NAME,
-            user=DB_USER,
-            host=DB_HOST,
-            password=DB_PASSWORD,
-            port=DB_PORT
-        )
-        cur = conn.cursor()
+        # Use existing database connection from app
+        conn = database.db
+        cur = database.cursor
         
-        print("Creating links table...")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS links (
                 id SERIAL PRIMARY KEY,
@@ -31,12 +23,12 @@ def run_migration():
         """)
         
         conn.commit()
-        cur.close()
-        conn.close()
         print("Migration 005: Created links table successfully.")
         
     except Exception as e:
         print(f"Migration failed: {e}")
+        if 'conn' in locals():
+            conn.rollback()
 
 if __name__ == "__main__":
     run_migration()
