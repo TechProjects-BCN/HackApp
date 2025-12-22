@@ -248,19 +248,7 @@ export default function Admin() {
     fetchStatus();
   };
 
-  const forceClear = async (type: string, id: number) => {
-    try {
-      await fetch(`${getBackendUrl()}/admin/station/clear`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ spotType: type, stationId: id }),
-        credentials: "include"
-      });
-      fetchStatus();
-    } catch (e) {
-      console.error(e);
-    }
-  };
+
 
   const addTime = async (type: string, id: number) => {
     try {
@@ -652,7 +640,7 @@ export default function Admin() {
                               +1m
                             </button>
                             <button
-                              onClick={() => { if (confirm("Force clear this station?")) forceClear("cutter", index + 1); }}
+                              onClick={() => { if (confirm("Force clear this station?")) clearStation("cutter", index); }}
                               className="bg-red-500/20 text-red-400 hover:bg-red-500/40 p-2 rounded flex-1 text-xs font-bold transition-colors"
                             >
                               Clear
@@ -707,7 +695,7 @@ export default function Admin() {
                               +1m
                             </button>
                             <button
-                              onClick={() => { if (confirm("Force clear this station?")) forceClear("hotglue", index + 1); }}
+                              onClick={() => { if (confirm("Force clear this station?")) clearStation("hotglue", index); }}
                               className="bg-red-500/20 text-red-400 hover:bg-red-500/40 p-2 rounded flex-1 text-xs font-bold transition-colors"
                             >
                               Clear
