@@ -65,7 +65,7 @@ export default function Queue() {
                 credentials: "include"
             });
             var data = await response.json();
-            console.log("Queue Update:", data);
+            // console.log("Queue Update:", data);
 
             if (data[`spot${queueType}ToAccept`]) {
                 const spotData = data[`spot${queueType}ToAccept`];
@@ -85,7 +85,7 @@ export default function Queue() {
 
                 // Play sound if we are at position 1 (persistent reminder)
                 if (currentPos === 1) {
-                    console.log("Position 1 - Playing Sound");
+                    // console.log("Position 1 - Playing Sound");
                     playNotificationSound();
                 }
 
@@ -103,8 +103,10 @@ export default function Queue() {
     useEffect(() => {
         checkQueueStatus(); // Initial check
         const interval = setInterval(checkQueueStatus, 4000);
+        return () => clearInterval(interval);
+    }, []);
 
-        // Timer for the spot countdown (visual only)
+    useEffect(() => {
         const timerInterval = setInterval(() => {
             if (spotToAccept) {
                 setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -113,11 +115,8 @@ export default function Queue() {
             }
         }, 1000);
 
-        return () => {
-            clearInterval(interval);
-            clearInterval(timerInterval);
-        };
-    }, [spotToAccept]); // Re-bind if spot status changes to ensure timer logic works
+        return () => clearInterval(timerInterval);
+    }, [spotToAccept]);
 
     const queue_propieties = {
         "queueName": t('hotglue'),
