@@ -51,8 +51,6 @@ export default function Spot() {
         }
         const interval = setInterval(async () => {
             setTimeLeft(targetEpoch - (Math.floor(Date.now() / 1000)));
-            setTimeLeft(targetEpoch - (Math.floor(Date.now() / 1000)));
-            var data = await fetchData();
             var data = await fetchData();
             if (data[`spot${spotType}ToAccept`]) {
                 router.push(`/spot/${spotType}`);

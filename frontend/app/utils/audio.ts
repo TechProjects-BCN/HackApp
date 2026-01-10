@@ -1,14 +1,23 @@
 // Simple "Ding" sound base64
-const notificationSound = "data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"; // Placeholder, will use a real short beep base64
+// const notificationSound = "data:audio/wav;base64,..."; // Unused
+
+let audioCtx: AudioContext | null = null;
 
 export const playNotificationSound = () => {
     try {
-        // Create a simple oscillator beep since we can't easily embed a large base64 string without bloat
-        // This is cleaner and requires no assets
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContext) return;
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
 
-        const audioCtx = new AudioContext();
+        // Singleton pattern: Reuse context to prevents main thread blocking from repeated creation
+        if (!audioCtx) {
+            audioCtx = new Ctx();
+        }
+
+        // Resume if suspended (browser autoplay policy)
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
 
@@ -25,11 +34,10 @@ export const playNotificationSound = () => {
         oscillator.start();
         oscillator.stop(audioCtx.currentTime + 0.5);
 
-        // Cleanup: Close the context after the sound finishes to prevent hitting the browser's max AudioContext limit
-        setTimeout(() => {
-            audioCtx.close();
-        }, 600);
+        // No cleanup needed for nodes (GC handles disconnected nodes), 
+        // and we intentionally keep the context open for performance.
+
     } catch (e) {
-        console.error("Audio play failed", e);
+        // console.error("Audio play failed", e);
     }
 };
