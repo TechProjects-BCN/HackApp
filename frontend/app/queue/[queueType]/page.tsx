@@ -60,8 +60,8 @@ export default function Queue() {
             } else if (data[`${queueType}Queue`]) {
                 const currentPos = data[`${queueType}Queue`]["position"];
 
-                // Play sound if we just moved to position 1
-                if (currentPos === 1 && previousGroupsInFront !== 1) {
+                // Play sound if we are at position 1 (persistent reminder)
+                if (currentPos === 1) {
                     playNotificationSound();
                 }
 

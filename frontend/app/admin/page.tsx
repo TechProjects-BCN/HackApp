@@ -449,25 +449,25 @@ export default function Admin() {
           Admin Panel
         </h1>
 
-        <a href="/" className="w-full text-left px-4 py-3 rounded-xl transition-colors hover:bg-white/5 text-slate-400 mb-2 flex items-center gap-2">
+        <a href="/" className="w-full text-left px-4 py-3 rounded-xl transition-colors hover:bg-white/5 text-slate-400 mb-2 flex items-center gap-2 font-bold">
           <span>←</span> Back to Home
         </a>
 
         <button
           onClick={() => setActiveTab("stations")}
-          className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${activeTab === "stations" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
+          className={`w-full text-left px-4 py-3 rounded-xl transition-colors font-bold ${activeTab === "stations" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
         >
           Stations & Config
         </button>
         <button
           onClick={() => setActiveTab("users")}
-          className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${activeTab === "users" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
+          className={`w-full text-left px-4 py-3 rounded-xl transition-colors font-bold ${activeTab === "users" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
         >
           User Management
         </button>
         <button
           onClick={() => setActiveTab("system")}
-          className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${activeTab === "system" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
+          className={`w-full text-left px-4 py-3 rounded-xl transition-colors font-bold ${activeTab === "system" ? "bg-blue-500/20 text-blue-400" : "hover:bg-white/5 text-slate-400"}`}
         >
           System Settings
         </button>
