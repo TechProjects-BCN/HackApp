@@ -65,7 +65,7 @@ export default function Queue() {
                 credentials: "include"
             });
             var data = await response.json();
-            // console.log("Queue Update:", data);
+
 
             if (data[`spot${queueType}ToAccept`]) {
                 const spotData = data[`spot${queueType}ToAccept`];
