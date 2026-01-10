@@ -8,6 +8,10 @@ import { getBackendUrl } from "../../utils/config";
 import { useLanguage } from '../../context/LanguageContext';
 
 
+import { playNotificationSound } from "../../utils/audio"; // Adjust path as needed
+
+
+
 export default function Queue() {
     const router = useRouter();
     var [groups_in_front, setGroupsInFront] = useState(0);
@@ -15,6 +19,9 @@ export default function Queue() {
     const { t } = useLanguage();
     const params = useParams(); // Gets dynamic params from the URL
     const queueType = params.queueType;
+
+    const [previousGroupsInFront, setPreviousGroupsInFront] = useState<number | null>(null);
+
     const leaveQueue = async (queueType: any) => {
         await fetch(`${getBackendUrl()}/removequeue`, {
             headers: { "Content-Type": "application/json" },
@@ -24,6 +31,7 @@ export default function Queue() {
         });
         router.push(`/`);
     };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -38,17 +46,27 @@ export default function Queue() {
                 return {};
             }
         }
+
         const interval = setInterval(async () => {
             var data = await fetchData();
             console.log(data);
             if (data[`spot${queueType}ToAccept`]) {
+                playNotificationSound(); // Play sound when spot opens
                 router.push(`/spot/${queueType}`);
 
             } else if (data[`${queueType}Station`]) {
                 router.push(`/inside/${queueType}`);
 
             } else if (data[`${queueType}Queue`]) {
-                setGroupsInFront(data[`${queueType}Queue`]["position"]);
+                const currentPos = data[`${queueType}Queue`]["position"];
+
+                // Play sound if we just moved to position 1
+                if (currentPos === 1 && previousGroupsInFront !== 1) {
+                    playNotificationSound();
+                }
+
+                setGroupsInFront(currentPos);
+                setPreviousGroupsInFront(currentPos); // Track previous
                 setEstimatedTimeRemaining(data[`${queueType}Queue`]["ETA"]);
             } else {
                 router.push("/");
@@ -56,7 +74,8 @@ export default function Queue() {
         }, 4000);
 
         return () => clearInterval(interval);
-    }, [groups_in_front]);
+    }, [groups_in_front, previousGroupsInFront]); // Add previousGroupsInFront dependency
+
 
 
 

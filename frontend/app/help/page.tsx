@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 
 import { getBackendUrl } from '../utils/config';
 import { useLanguage } from '../context/LanguageContext';
+import { playNotificationSound } from '../utils/audio';
 
 export default function Help() {
     const router = useRouter();
@@ -36,6 +37,7 @@ export default function Help() {
                 // Vibrate if just became active
                 if (currentlyActive && !called) {
                     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    playNotificationSound(); // Play sound
                 }
                 setCalled(currentlyActive);
             }
