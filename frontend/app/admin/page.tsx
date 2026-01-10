@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { getBackendUrl } from "../utils/config";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
+import { Textarea } from "@/components/ui/Textarea";
 
 
 
@@ -362,57 +366,52 @@ export default function Admin() {
       {/* Edit/Create Modal */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="glass-card w-full max-w-md p-6 space-y-6">
+          <Card className="w-full max-w-md p-6 space-y-6">
             <h3 className="text-xl font-bold text-white">{editingUser.isNew ? "Create New Group" : "Edit Group"}</h3>
             <form onSubmit={handleSaveUser} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm text-slate-400">Group Name</label>
-                <input
+                <Input
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-slate-400">Group Number</label>
-                <input
+                <Input
                   type="number"
                   value={editForm.number}
                   onChange={e => setEditForm({ ...editForm, number: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm text-slate-400">Username (Login ID)</label>
-                <input
+                <Input
                   type="text"
                   value={editForm.username}
                   onChange={e => setEditForm({ ...editForm, username: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                   placeholder="e.g. admin"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-slate-400">Members (comma separated)</label>
-                <textarea
+                <Textarea
                   value={editForm.members}
                   onChange={e => setEditForm({ ...editForm, members: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                   rows={3}
                   placeholder="John, Jane, Bob..."
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-slate-400">Password (Optional)</label>
-                <input
+                <Input
                   type="text"
                   value={editForm.password}
                   onChange={e => setEditForm({ ...editForm, password: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                   placeholder={editingUser.isNew ? "Enter password" : "Leave empty to keep current"}
                 />
               </div>
@@ -431,15 +430,15 @@ export default function Admin() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setEditingUser(null)} className="flex-1 btn-secondary py-2">
+                <Button type="button" onClick={() => setEditingUser(null)} variant="secondary" className="flex-1 py-2">
                   Cancel
-                </button>
-                <button type="submit" className="flex-1 btn-primary py-2">
+                </Button>
+                <Button type="submit" variant="primary" className="flex-1 py-2">
                   Save Changes
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div >
       )
       }
@@ -510,30 +509,29 @@ export default function Admin() {
             {/* Config Sections */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Event Settings - Safe to update */}
-              <div className="glass-card p-6 space-y-4">
+              {/* Event Settings - Safe to update */}
+              <Card className="space-y-4 p-6">
                 <h2 className="text-xl font-bold text-white">Event Settings</h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm text-slate-400">Current Event</label>
-                    <input
+                    <Input
                       type="text"
                       value={config.current_event}
                       onChange={(e) => setConfig({ ...config, current_event: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm text-slate-400">Next Event (Countdown)</label>
-                    <input
+                    <Input
                       type="text"
                       value={config.event}
                       onChange={(e) => setConfig({ ...config, event: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm text-slate-400">Target Time (for Next Event)</label>
-                    <input
+                    <Input
                       type="datetime-local"
                       value={(() => {
                         const date = new Date(config.target_epoch * 1000);
@@ -544,22 +542,20 @@ export default function Admin() {
                         const date = new Date(e.target.value);
                         setConfig({ ...config, target_epoch: Math.floor(date.getTime() / 1000) });
                       }}
-                      className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm text-slate-400">YouTube Video ID</label>
-                    <input
+                    <Input
                       type="text"
                       value={config.youtube_id}
                       onChange={(e) => setConfig({ ...config, youtube_id: e.target.value })}
-                      className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10"
                       placeholder="e.g. xX4mBbJjdYM"
                     />
                   </div>
-                  <button onClick={updateEventConfig} className="btn-primary w-full py-2 text-sm">Update Event Details</button>
+                  <Button onClick={updateEventConfig} className="w-full py-2 text-sm">Update Event Details</Button>
                 </div>
-              </div>
+              </Card>
 
               {/* Station Settings - DANGER */}
               <div className="glass-card p-6 space-y-4 border border-red-500/20">

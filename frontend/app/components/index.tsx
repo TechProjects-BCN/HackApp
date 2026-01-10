@@ -6,6 +6,8 @@ import { logout } from '@/app/actions/auth';
 import Image from 'next/image';
 import { getBackendUrl } from '../utils/config';
 import { useLanguage } from '../context/LanguageContext';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 export default function Index() {
   const [groupName, setGroupName] = useState("");
@@ -63,7 +65,7 @@ export default function Index() {
     <div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-black">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-1">
-          <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+          <h1 className="text-4xl font-bold tracking-tight text-gradient">
             {config.app_title || t('title')}
           </h1>
           <p className="text-slate-400 text-base">{config.app_subtitle || t('subtitle')}</p>
@@ -74,83 +76,89 @@ export default function Index() {
           )}
         </div>
 
-        <div className="glass-card p-6 space-y-3">
+        <Card className="space-y-3 p-6">
 
 
           {/* Admin Controls */}
           {isAdmin && (
             <div className="space-y-2 pb-2 border-b border-white/5">
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={() => router.push("/screen")}
-                  className="flex-1 btn-secondary py-2 text-xs font-bold rounded-lg"
+                  variant="secondary"
+                  className="flex-1 py-2 text-xs font-bold rounded-lg"
                 >
                   {t('screen')}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => router.push("/admin")}
-                  className="flex-1 btn-secondary py-2 text-xs font-bold rounded-lg"
+                  variant="secondary"
+                  className="flex-1 py-2 text-xs font-bold rounded-lg"
                 >
                   {t('admin')}
-                </button>
+                </Button>
               </div>
-              <button
+              <Button
                 onClick={() => router.push("/assistance")}
-                className="w-full btn-secondary py-2 text-xs font-bold rounded-lg bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20"
+                variant="secondary"
+                className="w-full py-2 text-xs font-bold rounded-lg bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20"
               >
                 {t('assistanceQueue')}
-              </button>
+              </Button>
             </div>
           )}
 
-          <button
+          <Button
             type="button"
             onClick={() => joinQueue("hotglue")}
-            className="btn-primary w-full group py-3"
+            className="w-full group py-3"
           >
             <span className="flex items-center justify-center gap-2">
               {t('hotglue')}
               <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={() => joinQueue("cutter")}
-            className="btn-primary w-full group py-3"
+            className="w-full group py-3"
           >
             <span className="flex items-center justify-center gap-2">
               {t('cutter')}
               <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={() => router.push('/help')}
-            className="btn-secondary w-full py-2"
+            variant="secondary"
+            className="w-full py-2"
           >
             {t('assistance')}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={() => router.push('/tutorial')}
-            className="btn-secondary w-full py-2 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300"
+            variant="secondary"
+            className="w-full py-2 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300"
           >
             {t('tutorial')}
-          </button>
+          </Button>
 
           {links.length > 0 && (
-            <button
+            <Button
               type="button"
               onClick={() => setShowResources(true)}
-              className="btn-secondary w-full py-2 bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-300"
+              variant="secondary"
+              className="w-full py-2 bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20 hover:text-blue-300"
             >
               {t('resources')}
-            </button>
+            </Button>
           )}
-        </div>
+        </Card>
 
         <div className="grid grid-cols-2 gap-3">
           <button
@@ -161,14 +169,15 @@ export default function Index() {
             {t('logout')}
           </button>
 
-          <button
+          <Button
             type="button"
             onClick={() => router.push('/group')}
-            className="btn-secondary text-sm py-2 flex items-center justify-center gap-2"
+            variant="secondary"
+            className="text-sm py-2 flex items-center justify-center gap-2"
           >
             {groupName}
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          </button>
+          </Button>
         </div>
 
         <div className="flex justify-center pt-4 opacity-50 hover:opacity-100 transition-opacity">
