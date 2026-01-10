@@ -24,6 +24,11 @@ export const playNotificationSound = () => {
 
         oscillator.start();
         oscillator.stop(audioCtx.currentTime + 0.5);
+
+        // Cleanup: Close the context after the sound finishes to prevent hitting the browser's max AudioContext limit
+        setTimeout(() => {
+            audioCtx.close();
+        }, 600);
     } catch (e) {
         console.error("Audio play failed", e);
     }

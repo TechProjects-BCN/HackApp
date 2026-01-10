@@ -20,8 +20,6 @@ export default function Queue() {
     const params = useParams(); // Gets dynamic params from the URL
     const queueType = params.queueType;
 
-    const [previousGroupsInFront, setPreviousGroupsInFront] = useState<number | null>(null);
-
     const leaveQueue = async (queueType: any) => {
         await fetch(`${getBackendUrl()}/removequeue`, {
             headers: { "Content-Type": "application/json" },
@@ -66,7 +64,6 @@ export default function Queue() {
                 }
 
                 setGroupsInFront(currentPos);
-                setPreviousGroupsInFront(currentPos); // Track previous
                 setEstimatedTimeRemaining(data[`${queueType}Queue`]["ETA"]);
             } else {
                 router.push("/");
@@ -74,7 +71,7 @@ export default function Queue() {
         }, 4000);
 
         return () => clearInterval(interval);
-    }, [groups_in_front, previousGroupsInFront]); // Add previousGroupsInFront dependency
+    }, [groups_in_front]);
 
 
 
