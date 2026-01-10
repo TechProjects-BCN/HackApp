@@ -10,18 +10,17 @@ const sql = postgres({
 });
 
 export async function dbSessionFetch(groupId: number, expiresAt: number) {
-    export async function dbSessionFetch(groupId: number, expiresAt: number) {
-        await sql`INSERT INTO sessions(groupId, expiresAt) VALUES(${groupId}, ${expiresAt})`;
-        const sessionId = await sql`SELECT sessionId FROM sessions WHERE groupId = ${groupId} AND expiresAt = ${expiresAt} `;
-        return sessionId[0]["sessionid"];
-    }
+    await sql`INSERT INTO sessions(groupId, expiresAt) VALUES(${groupId}, ${expiresAt})`;
+    const sessionId = await sql`SELECT sessionId FROM sessions WHERE groupId = ${groupId} AND expiresAt = ${expiresAt} `;
+    return sessionId[0]["sessionid"];
+}
 
-    export async function dbLoginGroup(username: any, password: any) {
-        const response = await sql`SELECT groupId FROM groups WHERE LOWER(username) = LOWER(${username}) AND password = ${password}`;
-        return response;
-    }
+export async function dbLoginGroup(username: any, password: any) {
+    const response = await sql`SELECT groupId FROM groups WHERE LOWER(username) = LOWER(${username}) AND password = ${password}`;
+    return response;
+}
 
-    export async function checkAdmin(groupId: any) {
-        const response = await sql`SELECT * FROM admins WHERE admins.groupId = ${groupId}; `;
-        return response;
-    }
+export async function checkAdmin(groupId: any) {
+    const response = await sql`SELECT * FROM admins WHERE admins.groupId = ${groupId}; `;
+    return response;
+}

@@ -10,6 +10,9 @@ export async function createSession(groupId: any) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
 
+  // 1. Create a session in the database
+  const sessionId = await dbSessionFetch(groupId, expiresAt.getTime());
+
   var isAdminResponse = await checkAdmin(groupId);
   if (isAdminResponse[0]) { var isAdmin = 1 }
   else {
