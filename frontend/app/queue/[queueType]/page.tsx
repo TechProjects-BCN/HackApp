@@ -69,13 +69,19 @@ export default function Queue() {
 
             if (data[`spot${queueType}ToAccept`]) {
                 const spotData = data[`spot${queueType}ToAccept`];
-                setSpotToAccept(spotData);
+
+                // Always play sound when in this state (looping reminder)
+                // Using the singleton AudioContext prevents this from stuttering the UI
                 playNotificationSound();
 
-                // Sync countdown if backend provides it, otherwise basic logic
-                // The original spot page calculated based on local time vs target, 
-                // but we can just simplify or try to infer. 
-                // For now, we just keep the loop playing sound.
+                setSpotToAccept((prev: any) => {
+                    // Only reset timer if this is a NEW spot offer
+                    if (!prev || JSON.stringify(prev) !== JSON.stringify(spotData)) {
+                        setTargetTime(Date.now() + 30000); // 30s from now
+                        return spotData;
+                    }
+                    return prev;
+                });
 
             } else if (data[`${queueType}Station`]) {
                 router.push(`/inside/${queueType}`);
@@ -102,21 +108,24 @@ export default function Queue() {
 
     useEffect(() => {
         checkQueueStatus(); // Initial check
-        const interval = setInterval(checkQueueStatus, 4000);
+        const interval = setInterval(checkQueueStatus, 5000);
         return () => clearInterval(interval);
     }, []);
 
+    // Timer Effect (Visual only, uses delta time)
+    const [targetTime, setTargetTime] = useState(0);
+
     useEffect(() => {
+        if (!spotToAccept) return;
+
         const timerInterval = setInterval(() => {
-            if (spotToAccept) {
-                setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-            } else {
-                setTimeLeft(30);
-            }
-        }, 1000);
+            const now = Date.now();
+            const remaining = Math.max(0, Math.ceil((targetTime - now) / 1000));
+            setTimeLeft(remaining);
+        }, 100); // Update frequently for smoothness
 
         return () => clearInterval(timerInterval);
-    }, [spotToAccept]);
+    }, [spotToAccept, targetTime]);
 
     const queue_propieties = {
         "queueName": t('hotglue'),
