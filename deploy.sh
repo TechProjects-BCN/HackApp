@@ -9,7 +9,7 @@ git pull
 
 echo "### Rebuilding containers..."
 # This ensures that 'frontend' and 'backend' are rebuilt with the latest code
-docker compose build
+docker compose up -d
 
 echo "### Check SSL Certificates..."
 if [ -f "$CERT_PATH" ]; then
