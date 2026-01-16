@@ -4,11 +4,6 @@ CREATE TABLE IF NOT EXISTS accepted(requestId SERIAL PRIMARY KEY, groupId BIGINT
 CREATE TABLE IF NOT EXISTS spots(requestId SERIAL PRIMARY KEY, acceptedId BIGINT, groupId BIGINT, spotId BIGINT, spotType varchar(20), groupName varchar(255), groupNumber BIGINT, eventID BIGINT, LeftTime BIGINT);
 CREATE TABLE IF NOT EXISTS admins(adminId SERIAL PRIMARY KEY, groupId BIGINT);
 INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID, members) VALUES ('admin', 'admin', 'Administrator', 1, 1, 0, '');
-INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID, members) VALUES ('laser', 'harp', 'Laser Harp', 2, 0, 0, '');
-INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID, members) VALUES ('water', 'fountain', 'Water Fountain', 3, 0, 0, '');
-INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID, members) VALUES ('robotic', 'arm', 'Robotic Arm', 4, 0, 0, '');
-INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID, members) VALUES ('rc', 'car', 'RC Car', 5, 0, 0, '');
-INSERT INTO groups(username, password, groupName, groupNumber, isAdmin, eventID, members) VALUES ('solar', 'etcher', 'Solar Etcher', 6, 0, 0, '');
 INSERT INTO admins(groupId) VALUES (1);
 
 CREATE USER postgres SUPERUSER;
