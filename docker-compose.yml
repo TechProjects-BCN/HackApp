@@ -1,6 +1,6 @@
----
 services:
   backend:
+    image: newtoniano20/tech-backend:latest
     build:
       context: backend
     stop_signal: SIGINT
@@ -12,7 +12,6 @@ services:
       DB_NAME: techprojects
       DB_USER: techprojects
       DB_PASSWORD: 12341234
-
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,6 +19,7 @@ services:
       - "5000:5000"
       
   frontend:
+    image: newtoniano20/tech-frontend:latest
     build:
       context: frontend
     stop_signal: SIGINT
@@ -32,11 +32,9 @@ services:
       DB_USER: techprojects
       DB_PASSWORD: 12341234
       BACKEND_URL: http://backend:5000
-
     depends_on:
       postgres:
         condition: service_healthy
-        
     ports:
       - "3000"
 
@@ -85,11 +83,9 @@ services:
       - ./data/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
-
 networks:
   my_network:
     driver: bridge
-
 
 volumes:
   pgdata:
